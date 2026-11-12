@@ -6,8 +6,8 @@
 |---|---|---|---|
 | Notion | VERIFIED | Połączenie i zapis działają; centrum, baza zadań i dokumenty utworzone. | Główna baza wiedzy i zadań. |
 | ChatGPT Library | VERIFIED | Listowanie, odczyt i zapis działają; /Assistant_Workbench/ zawiera dokumentację i archiwa startera. | Główny magazyn plików roboczych. |
-| GitHub ElinaXproject/gpt | VERIFIED | Instalacja ChatGPT Codex Connector wykryta dla konta; README.md zapisano i ponownie odczytano. | Repozytorium wersjonowanej dokumentacji i kodu. |
-| Dropbox | PARTIAL | Odczyt i listowanie działają; upload nie został potwierdzony. | Nie deklarować synchronizacji. |
+| GitHub ElinaXproject/gpt | VERIFIED | Instalacja ChatGPT Codex Connector wykryta dla konta; README.md zapisano i ponownie odczytano. Bieżący odczyt repozytorium i plików kontrolnych również działa. | Repozytorium wersjonowanej dokumentacji i kodu. |
+| Dropbox | PARTIAL | Odczyt i listowanie działają. Folder /Assistant_Workbench istnieje, ale jest pusty; upload nie został potwierdzony. | Nie deklarować synchronizacji. |
 | Google Drive | UNAVAILABLE | DISABLED_BY_ADMIN. | Nie planować przepływu. |
 | Box | NOT_SELECTED | Rozwiązanie odrzucone z powodu opłat. | Nie proponować jako darmowego. |
 
