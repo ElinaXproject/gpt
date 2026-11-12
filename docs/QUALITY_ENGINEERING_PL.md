@@ -57,10 +57,10 @@ Nie oceniaj jakości wyłącznie przez model-as-judge. Łącz asercje determinis
 
 ## Wdrożenia w repozytorium — 2026-11-12
 
-- Dodano `tests/test_workbench.py`: sześć deterministycznych testów sprawdzających wymagane dokumenty, kompletność przypadków E01–E10, statusy procesu, linki wewnętrzne, szablony i typowe formaty wycieków sekretów.
+- Dodano `tests/test_workbench.py`: osiem deterministycznych testów sprawdzających wymagane dokumenty, kompletność przypadków E01–E10, statusy procesu, linki wewnętrzne, szablony i typowe formaty wycieków sekretów.
 - Dodano `.github/workflows/quality.yml`: testy uruchamiają się przy push do main, pull request i ręcznie. Uprawnienia workflow ograniczono do `contents: read`. Akcje przypięto do pełnych SHA.
 - Dodano `.github/dependabot.yml`: cotygodniowe aktualizacje GitHub Actions, limit pięciu otwartych PR.
-- Pierwszy pełny przebieg GitHub Actions zakończył się statusem SUCCESS. Job „Documentation and safety regression tests” zakończony sukcesem; wszystkie kroki wykonane.
+- Pierwszy pełny przebieg GitHub Actions zakończył się statusem SUCCESS. Job „Documentation and safety regression tests” zakończony sukcesem; wszystkie kroki wykonane. Drugi zestaw obejmuje też kontrolę uprawnień CI, przypięcia SHA i konfiguracji Dependabot.
 - To są testy repozytorium i dokumentacji, a nie dowód, że model stał się inteligentniejszy ani że integracje zewnętrzne działają.
 
 ## Proponowany darmowy stos open source
@@ -79,8 +79,8 @@ Przed wdrożeniem sprawdź aktualną licencję, aktywność projektu, wymagania 
 | Data | Zmiana | Dowód |
 | --- | --- | --- |
 | 2026-11-12 | Utworzono system jakości i rozwoju | Dokument w repozytorium i Notion |
-| 2026-11-12 | Dodano testy deterministyczne i CI | GitHub Actions run 43246960279: SUCCESS |
-| 2026-11-12 | Dodano cotygodniowy Dependabot dla GitHub Actions | `.github/dependabot.yml` zapisany |
+| 2026-11-12 | Dodano testy deterministyczne i CI | GitHub Actions run 43247202462: SUCCESS (8 testów) |
+| 2026-11-12 | Dodano cotygodniowy Dependabot dla GitHub Actions | `.github/dependabot.yml` zapisany; uruchomienie Dependabot zakończone SUCCESS |
 
 ## Otwarte prace
 
