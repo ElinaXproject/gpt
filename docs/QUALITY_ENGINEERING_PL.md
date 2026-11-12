@@ -1,6 +1,6 @@
 # System jakości i rozwoju asystenta
 
-Wersja: 1.0
+Wersja: 1.1
 Data: 2026-11-12
 Status: wdrażany
 
@@ -55,14 +55,22 @@ Każdy test ma wejście, oczekiwany rezultat i kryterium zaliczenia. Zestaw regr
 
 Nie oceniaj jakości wyłącznie przez model-as-judge. Łącz asercje deterministyczne, testy narzędzi, testy regresyjne i kontrolę człowieka tam, gdzie rezultat ma realne skutki.
 
+## Wdrożenia w repozytorium — 2026-11-12
+
+- Dodano `tests/test_workbench.py`: sześć deterministycznych testów sprawdzających wymagane dokumenty, kompletność przypadków E01–E10, statusy procesu, linki wewnętrzne, szablony i typowe formaty wycieków sekretów.
+- Dodano `.github/workflows/quality.yml`: testy uruchamiają się przy push do main, pull request i ręcznie. Uprawnienia workflow ograniczono do `contents: read`. Akcje przypięto do pełnych SHA.
+- Dodano `.github/dependabot.yml`: cotygodniowe aktualizacje GitHub Actions, limit pięciu otwartych PR.
+- Pierwszy pełny przebieg GitHub Actions zakończył się statusem SUCCESS. Job „Documentation and safety regression tests” zakończony sukcesem; wszystkie kroki wykonane.
+- To są testy repozytorium i dokumentacji, a nie dowód, że model stał się inteligentniejszy ani że integracje zewnętrzne działają.
+
 ## Proponowany darmowy stos open source
 
 Wdrażać etapami, nie instalować wszystkiego naraz:
-- Promptfoo (MIT): testy promptów, regresja i red-teaming.
+- Promptfoo (MIT): lokalne testy promptów, regresja i red-teaming; uruchomić dopiero po przygotowaniu neutralnych, niepoufnych przypadków testowych i sprawdzeniu kosztów modelu.
 - Inspect AI (MIT): ewaluacje agentów w kontrolowanym środowisku.
-- Langfuse (MIT core): śledzenie przebiegów i analiza jakości, jeśli jest potrzebne i możliwe do samodzielnego hostowania.
-- Cognee (open source): kandydat do lokalnej pamięci długoterminowej; najpierw test prywatności, zasobów i jakości odzyskiwania.
-- GitHub Actions: automatyczne uruchamianie testów przy zmianach w repozytorium.
+- Langfuse (MIT core): śledzenie przebiegów i analiza jakości, jeśli pojawi się potrzeba oraz możliwość bezpiecznego self-hostingu.
+- Cognee: kandydat do lokalnej pamięci długoterminowej; nie wdrażać, dopóki nie wykaże przewagi nad istniejącym Notion + Library.
+- GitHub Actions: aktywna automatyzacja testów i aktualizacji zależności.
 
 Przed wdrożeniem sprawdź aktualną licencję, aktywność projektu, wymagania sprzętowe, telemetrię, bezpieczeństwo i realne koszty. Nie instaluj usług na komputerze użytkownika bez jego zgody.
 
@@ -70,12 +78,16 @@ Przed wdrożeniem sprawdź aktualną licencję, aktywność projektu, wymagania 
 
 | Data | Zmiana | Dowód |
 | --- | --- | --- |
-| 2026-11-12 | Ustanowiono system jakości i rozwoju; rozpoczęto audyt Workbench i repozytorium | Repozytorium i Notion odczytane; niniejszy dokument |
+| 2026-11-12 | Utworzono system jakości i rozwoju | Dokument w repozytorium i Notion |
+| 2026-11-12 | Dodano testy deterministyczne i CI | GitHub Actions run 43246960279: SUCCESS |
+| 2026-11-12 | Dodano cotygodniowy Dependabot dla GitHub Actions | `.github/dependabot.yml` zapisany |
 
 ## Otwarte prace
 
-- [ ] Zbudować mały zestaw testów Promptfoo dla typowych zadań i błędów.
-- [ ] Sprawdzić istniejące pliki repozytorium i strukturę katalogów przed dodaniem kodu.
-- [ ] Ocenić, czy Cognee wnosi wartość ponad istniejący Notion + Library; bez dublowania pamięci.
+- [ ] Zbudować testy zachowania asystenta na rzeczywistych scenariuszach (pamięć, dobór narzędzi, prawdziwe potwierdzanie działań); nie mylić ich z testami plików.
+- [ ] Dodać kontrolę bezpieczeństwa zależności i skanowanie sekretów bez wysyłania danych poufnych do zewnętrznych usług.
+- [ ] Sprawdzić ustawienia ochrony gałęzi i wymagania PR; nie zmieniać ich bez potwierdzenia dostępności i skutków.
 - [ ] Uporządkować status integracji Publora/n8n osobno od systemu jakości asystenta.
-- [ ] Dodać testy automatyczne dopiero po ustaleniu środowiska wykonawczego i bezpiecznych sekretów.
+- [ ] Rozwiązać i zweryfikować upload do Dropbox; nie deklarować synchronizacji przed testem.
+- [ ] Ocenić Promptfoo/Inspect AI na małym zestawie neutralnych testów, bez kupowania API.
+- [ ] Nie wdrażać kolejnej bazy pamięci bez dowodu, że poprawi wyszukiwanie i ciągłość pracy.
