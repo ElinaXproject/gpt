@@ -73,6 +73,22 @@ class WorkbenchRepositoryTests(unittest.TestCase):
                 with self.subTest(path=str(path), pattern=pattern.pattern):
                     self.assertIsNone(pattern.search(content), f"Possible secret found in {path}")
 
+    def test_ci_workflow_uses_read_only_permissions_and_pinned_actions(self):
+        content = self.read(".github/workflows/quality.yml")
+        self.assertIn("permissions:\n  contents: read", content)
+        self.assertNotIn("write-all", content)
+        action_refs = re.findall(r"^\s*uses:\s*([^#\s]+)", content, re.MULTILINE)
+        self.assertTrue(action_refs, "CI workflow should use explicit actions")
+        for reference in action_refs:
+            with self.subTest(action=reference):
+                self.assertRegex(reference, r"@[0-9a-f]{40}$")
+
+    def test_dependabot_checks_github_actions_weekly(self):
+        content = self.read(".github/dependabot.yml")
+        self.assertIn("package-ecosystem: github-actions", content)
+        self.assertIn("interval: weekly", content)
+        self.assertIn("open-pull-requests-limit: 5", content)
+
 
 if __name__ == "__main__":
     unittest.main()
