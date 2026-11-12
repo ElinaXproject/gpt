@@ -26,7 +26,7 @@ class WorkbenchRepositoryTests(unittest.TestCase):
 
     def test_all_documented_regression_cases_are_present(self):
         content = self.read("docs/EVAL_CASES.md")
-        case_ids = set(re.findall(r"^\\|\\s*(E\\d{2})\\s*\\|", content, re.MULTILINE))
+        case_ids = set(re.findall(r"^\|\s*(E\d{2})\s*\|", content, re.MULTILINE))
         self.assertEqual({f"E{i:02d}" for i in range(1, 11)}, case_ids)
         for status in ("PASS", "FAIL", "NOT RUN"):
             self.assertIn(status, content)
@@ -39,7 +39,7 @@ class WorkbenchRepositoryTests(unittest.TestCase):
 
     def test_readme_internal_markdown_links_resolve(self):
         readme = self.read("README.md")
-        links = re.findall(r"\\]\\((docs/[^)#]+\\.md)(?:#[^)]*)?\\)", readme)
+        links = re.findall(r"\]\((docs/[^)#]+\.md)(?:#[^)]*)?\)", readme)
         self.assertTrue(links, "README should link to operational documents")
         for link in links:
             with self.subTest(link=link):
@@ -59,10 +59,10 @@ class WorkbenchRepositoryTests(unittest.TestCase):
 
     def test_markdown_files_do_not_contain_common_live_secret_formats(self):
         patterns = (
-            re.compile(r"\\bgh[pousr]_[A-Za-z0-9]{30,}\\b"),
-            re.compile(r"\\bgithub_pat_[A-Za-z0-9_]{40,}\\b"),
-            re.compile(r"\\bsk-[A-Za-z0-9]{32,}\\b"),
-            re.compile(r"\\bAKIA[0-9A-Z]{16}\\b"),
+            re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
+            re.compile(r"\bgithub_pat_[A-Za-z0-9_]{40,}\b"),
+            re.compile(r"\bsk-[A-Za-z0-9]{32,}\b"),
+            re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
             re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
         )
         markdown_files = list(ROOT.rglob("*.md"))
