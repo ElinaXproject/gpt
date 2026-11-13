@@ -26,8 +26,8 @@
 | Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
 | Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; brak adaptera w Workerze |
-| TikTok @ocenionona6 | PARTIAL | Metricool połączony; brak adaptera w Workerze |
-| YouTube @MemoryAgent-r3 | BLOCKED | kanał w Metricool wymaga potwierdzenia mapowania; brak adaptera/OAuth |
+| TikTok @ocenionona6 | PARTIAL | Metricool brand RED ABSURD IDEA połączony; brak adaptera w Workerze |
+| YouTube @MemoryAgent-r3 | BLOCKED | Metricool ma channel ID, ale zgodność z handle wymaga potwierdzenia; brak adaptera/OAuth |
 | Publikacja E2E | NOT RUN | żadna publikacja nie została wykonana |
 | Backup / restore | BLOCKED | plan istnieje, brak odseparowanego magazynu i testu odtworzenia |
 
@@ -56,6 +56,10 @@
 - CI potwierdziło testy oraz składnię modułu Workera.
 
 ## Najważniejsze blokady
+
+- Publora Starter: 15 publikacji miesięcznie, 2 wykorzystane, 13 pozostało; 3 aktywne sloty harmonogramu, 7-dniowy horyzont.
+- Metricool: limity planu nie zostały potwierdzone; nie zakładać wartości.
+- Worker nie ma poświadczeń providerów; połączenia w ChatGPT nie są automatycznie dostępne w Cloudflare.
 
 1. Brak adapterów publikacji dla Publora, Metricool, TikTok i YouTube.
 2. Brak poświadczeń platform publikacyjnych w Workerze.
