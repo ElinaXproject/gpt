@@ -56,7 +56,8 @@ def domain_allowed(host: str, allowed_domains: list[str]) -> bool:
 
 def inspect_feed(feed: dict) -> dict:
     configured_host = urlparse(feed["url"]).hostname or ""
-    if urlparse(feed["url"]).scheme != "https" or not domain_allowed(configured_host, feed["allowed_domains"]):
+    feed_domains = feed.get("feed_domains", feed["allowed_domains"])
+    if urlparse(feed["url"]).scheme != "https" or not domain_allowed(configured_host, feed_domains):
         return {
             "id": feed["id"],
             "name": feed["name"],
@@ -71,7 +72,7 @@ def inspect_feed(feed: dict) -> dict:
         with urllib.request.urlopen(request, timeout=20) as response:
             status = response.status
             final_host = urlparse(response.geturl()).hostname or ""
-            if not domain_allowed(final_host, feed["allowed_domains"]):
+            if not domain_allowed(final_host, feed_domains):
                 return {
                     "id": feed["id"],
                     "name": feed["name"],
