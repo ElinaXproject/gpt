@@ -97,35 +97,41 @@ async function runDaily(env, scheduledAt = new Date()) {
   }
 
   const existing = await env.DB.prepare(
-    "SELECT status FROM daily_runs WHERE local_date = ?"
+    ""SELECT status, started_at FROM daily_runs WHERE local_date = ?""
   ).bind(localDate).first();
 
-  if (existing?.status === "succeeded" || existing?.status === "running") {
+  if (existing?.status === "succeeded") {
     return { status: "skipped", reason: "already_processed", localDate };
+  }
+  if (existing?.status === "running") {
+    const startedAt = Date.parse(String(existing.started_at || "").replace(" ", "T") + "Z");
+    if (Number.isFinite(startedAt) && Date.now() - startedAt < 30 * 60 * 1000) {
+      return { status: "skipped", reason: "run_still_active", localDate };
+    }
   }
 
   await env.DB.prepare(
     "INSERT INTO daily_runs (local_date, status, started_at) VALUES (?, 'running', CURRENT_TIMESTAMP) " +
     "ON CONFLICT(local_date) DO UPDATE SET status='running', started_at=CURRENT_TIMESTAMP, completed_at=NULL, error_code=NULL " +
-    "WHERE daily_runs.status IN ('failed','skipped')"
+    "WHERE daily_runs.status IN ('failed','skipped','running')"
   ).bind(localDate).run();
 
   try {
     const ideas = await generateIdeas(env, localDate);
     const insert = env.DB.prepare(
-      "INSERT INTO content_items (id, profile_id, topic, title, description, hashtags_json, script, source_urls_json, rights_reference, status) " +
-      "VALUES (?, ?, ?, ?, '', '[]', '', '[]', '', 'idea')"
+      "INSERT OR IGNORE INTO content_items (id, profile_id, topic, title, description, hashtags_json, script, source_urls_json, rights_reference, status, daily_run_date) " +
+      "VALUES (?, ?, ?, ?, '', '[]', '', '[]', '', 'idea', ?)"
     );
     const eventInsert = env.DB.prepare(
-      "INSERT INTO events (id, event_type, profile_id, content_id, detail_json) VALUES (?, 'daily_idea_created', ?, ?, ?)"
+      "INSERT OR IGNORE INTO events (id, event_type, profile_id, content_id, detail_json) VALUES (?, 'daily_idea_created', ?, ?, ?)"
     );
 
     const statements = [];
     for (const item of ideas) {
-      const id = crypto.randomUUID();
-      statements.push(insert.bind(id, item.profile_id, item.topic, item.hook));
+      const id = "idea_" + localDate + "_" + item.profile_id;
+      statements.push(insert.bind(id, item.profile_id, item.topic, item.hook, localDate));
       statements.push(eventInsert.bind(
-        crypto.randomUUID(),
+        "event_idea_" + localDate + "_" + item.profile_id,
         item.profile_id,
         id,
         JSON.stringify({
