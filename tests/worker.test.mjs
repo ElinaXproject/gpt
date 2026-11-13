@@ -115,6 +115,9 @@ test("scheduled handler creates exactly three idempotent profile ideas at 09:00 
   assert.equal(batch.batch.length, 6);
   assert.equal(batch.batch.filter(item => item.sql.includes("content_items")).length, 3);
   assert.equal(batch.batch.filter(item => item.sql.includes("daily_idea_created")).length, 3);
+  const eventRows = batch.batch.filter(item => item.sql.includes("daily_idea_created"));
+  const themes = eventRows.map(item => JSON.parse(item.params[3]).theme).sort();
+  assert.deepEqual(themes, ["education", "humor", "tech"]);
 });
 
 test("scheduled handler skips the duplicate winter-time Cron invocation", async () => {
