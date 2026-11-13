@@ -113,9 +113,6 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
 def process_manifest(client: Any, item: dict[str, Any], job_store: Any | None = None) -> dict[str, Any]:
     profile, validated = validate_manifest(item)
     connection = client.resolve_connection(profile["platform"], profile["handle"])
-    connection_check = client.test_connection(connection["platformId"])
-    if connection_check.get("status") not in {"ok", "success"} and connection_check.get("success") is not True:
-        raise PubloraError("provider_connection_test_failed")
 
     create_key = stable_idempotency_key(item["content_id"], item["profile_id"], "create")
     try:
