@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:00 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:31 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -15,7 +15,7 @@
 | Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, backupu, retencji, RPO/RTO i napraw |
 | Plan testów | DONE (projekt) | macierz T01–T22 plus kontrole wdrożenia |
 | Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry |
-| CI GitHub | VERIFIED | testy dokumentacji i core; składnia modułu Worker sprawdzona w Actions |
+| CI GitHub | BLOCKED → FIX COMMITTED / RUN QUEUED | wykryto stary expected handle w teście core; poprawka commit `88f05cea4cec0932f54f9fa6941652d613a782fc`; workflow #115 oczekuje na runner |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
 | Cloudflare Worker | VERIFIED | `autored-idea-api`, aktywna wersja 100% ruchu, binding AI i D1; health HTTP potwierdzony w CI |
 | Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
@@ -53,7 +53,9 @@
 - Utworzono D1, tabele, indeksy i mapowanie trzech profili.
 - Włączono Worker, D1 i AI binding; ustawiono Cron.
 - Dodano migrację D1 do repozytorium.
-- CI potwierdziło testy oraz składnię modułu Workera.
+- CI potwierdziło wcześniej testy oraz składnię modułu Workera.
+- Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
+- Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
 
 ## Najważniejsze blokady
 
@@ -63,7 +65,7 @@
 
 1. Brak adapterów publikacji dla Publora, Metricool, TikTok i YouTube.
 2. Brak poświadczeń platform publikacyjnych w Workerze.
-3. Brak potwierdzenia, że YouTube channel ID należy do `@MemoryAgent-r3c`.
+3. YouTube handle `@memoryagent-r3c` został potwierdzony w vidIQ dla kanału `Memory Agent`; zgodność z ID w Metricool nadal wymaga niezależnego mapowania.
 4. Brak renderera i testów FFmpeg.
 5. Brak potwierdzonego darmowego sposobu generowania obrazów/wideo w wymaganej skali.
 6. Brak bezpiecznego, odseparowanego miejsca backupu i testu restore.
