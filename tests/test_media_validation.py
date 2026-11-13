@@ -1,9 +1,10 @@
+import hashlib
 import json
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from autored.media_validation import MediaValidationError, validate_tiktok_video, validate_youtube_video
+from autored.media_validation import MediaValidationError, sha256_file, validate_tiktok_video, validate_youtube_video
 
 
 class MediaValidationTests(unittest.TestCase):
@@ -23,6 +24,13 @@ class MediaValidationTests(unittest.TestCase):
         def run(*args, **kwargs):
             return SimpleNamespace(stdout=json.dumps(probe))
         return run
+
+    def test_sha256_file_streams_in_small_chunks(self):
+        self.assertEqual(hashlib.sha256(b"video-bytes").hexdigest(), sha256_file(self.path, chunk_size=3))
+
+    def test_sha256_file_rejects_nonpositive_chunk_size(self):
+        with self.assertRaisesRegex(ValueError, "chunk_size_must_be_positive"):
+            sha256_file(self.path, chunk_size=0)
 
     def test_valid_vertical_h264_aac_video_passes(self):
         result = validate_tiktok_video(self.path, self.runner(self.probe))
