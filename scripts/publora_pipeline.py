@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from publora_client import PubloraClient, PubloraError, stable_idempotency_key
+from autored.d1_client import D1Client, D1Error
 
 
 PROFILES = {
@@ -109,7 +110,7 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
     return profile, {"scheduled_time": scheduled_time, "platform_settings": settings, "media_path": media_path}
 
 
-def process_manifest(client: Any, item: dict[str, Any]) -> dict[str, Any]:
+def process_manifest(client: Any, item: dict[str, Any], job_store: Any | None = None) -> dict[str, Any]:
     profile, validated = validate_manifest(item)
     connection = client.resolve_connection(profile["platform"], profile["handle"])
     connection_check = client.test_connection(connection["platformId"])
@@ -155,9 +156,23 @@ def process_manifest(client: Any, item: dict[str, Any]) -> dict[str, Any]:
             # Never blindly repeat a schedule update after an unknown outcome.
             raise PubloraError("schedule_outcome_unknown_requires_reconciliation") from None
 
+    job_record = None
+    if job_store is not None:
+        try:
+            job_record = job_store.record_scheduled(
+                content_id=item["content_id"],
+                profile_id=item["profile_id"],
+                scheduled_at=validated["scheduled_time"].astimezone(timezone.utc).isoformat(),
+                idempotency_key=schedule_key,
+                provider_post_group_id=post_group_id,
+            )
+        except D1Error as exc:
+            raise PubloraError("d1_job_record_failed:" + exc.code) from None
+
     return {
         "status": "scheduled",
         "post_group_id": post_group_id,
+        "job_record": job_record,
         "platform_id": connection["platformId"],
         "scheduled_time": validated["scheduled_time"].astimezone(timezone.utc).isoformat(),
         "provider_response": scheduled,
@@ -170,7 +185,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         item = json.loads(args.manifest.read_text(encoding="utf-8"))
-        result = process_manifest(PubloraClient(), item)
+        result = process_manifest(PubloraClient(), item, D1Client())
     except (OSError, json.JSONDecodeError):
         print(json.dumps({"status": "blocked", "error": "manifest_read_failed"}))
         return 2
