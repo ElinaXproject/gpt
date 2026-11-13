@@ -31,6 +31,10 @@ class WorkbenchRepositoryTests(unittest.TestCase):
             "docs/AUTORED_IDEA_SECURITY_DR_PL.md",
             "docs/AUTORED_IDEA_TEST_PLAN_PL.md",
             "docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md",
+            "docs/AUTORED_IDEA_STATE_PL.md",
+            "docs/AUTORED_IDEA_DECISIONS_PL.md",
+            "autored/README.md",
+            "autored/core.py",
         )
         for path in required:
             with self.subTest(path=path):
@@ -76,8 +80,8 @@ class WorkbenchRepositoryTests(unittest.TestCase):
 
     def test_readme_internal_markdown_links_resolve(self):
         readme = self.read("README.md")
-        links = re.findall(r"\]\((docs/[^)#]+\.md)(?:#[^)]*)?\)", readme)
-        self.assertTrue(links, "README should link to operational documents")
+        links = re.findall(r"\]\(([^)#]+\.md)(?:#[^)]*)?\)", readme)
+        self.assertTrue(links, "README should link to Markdown documents")
         for link in links:
             with self.subTest(link=link):
                 self.assertTrue((ROOT / link).is_file(), f"Broken internal link: {link}")
