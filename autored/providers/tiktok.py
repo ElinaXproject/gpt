@@ -203,7 +203,14 @@ class TikTokDirectPublisher:
         if not isinstance(publish_id, str) or not publish_id or not isinstance(upload_url, str):
             raise TikTokError("upload_session_missing")
         parsed = urllib.parse.urlparse(upload_url)
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "open-upload.tiktokapis.com"
+            or parsed.username
+            or parsed.password
+            or parsed.port not in (None, 443)
+            or parsed.fragment
+        ):
             raise TikTokError("unsafe_upload_url")
 
         with media_path.open("rb") as media:
