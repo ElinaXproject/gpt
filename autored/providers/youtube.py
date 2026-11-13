@@ -173,7 +173,14 @@ class YouTubeUploader:
         if status not in {200, 201} or not upload_url:
             raise YouTubeError("resumable_session_not_created", status)
         parsed = urllib.parse.urlparse(upload_url)
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "www.googleapis.com"
+            or parsed.username
+            or parsed.password
+            or parsed.port not in (None, 443)
+            or parsed.fragment
+        ):
             raise YouTubeError("unsafe_resumable_upload_url")
 
         data = media_path.read_bytes()
