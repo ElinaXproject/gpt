@@ -270,6 +270,16 @@ class D1Client:
         ).get("results", [])
 
 
+    def get_pending_tiktok_jobs(self, limit: int = 20) -> list[dict[str, Any]]:
+        if not 1 <= limit <= 100:
+            raise D1Error("invalid_pending_job_limit")
+        return self.query(
+            "SELECT id, content_id, profile_id, platform_post_id, status "
+            "FROM publication_jobs WHERE provider='tiktok_direct' AND status='publishing' "
+            "AND platform_post_id IS NOT NULL ORDER BY updated_at LIMIT ?",
+            [limit],
+        ).get("results", [])
+
     def get_youtube_jobs_to_schedule(self, now_utc: str, horizon_hours: int = 168, limit: int = 20) -> list[dict[str, Any]]:
         if not 1 <= limit <= 100 or not 1 <= horizon_hours <= 168:
             raise D1Error("invalid_youtube_schedule_query")
