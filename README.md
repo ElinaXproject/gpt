@@ -43,8 +43,9 @@ Central repository for the GPT Workbench project.
 6. [Test plan and acceptance criteria](docs/AUTORED_IDEA_TEST_PLAN_PL.md)
 7. [Deployment log](docs/AUTORED_IDEA_DEPLOYMENT_2026-11-13_PL.md)
 8. [Media renderer and TTS](docs/AUTORED_IDEA_RENDERER_PL.md)
-9. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
-10. [Core package](autored/README.md)
+9. [Provider connection and quota audit](docs/AUTORED_IDEA_PROVIDER_AUDIT_2026-11-13_PL.md)
+10. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
+11. [Core package](autored/README.md)
 
 ### GPT Workbench
 
