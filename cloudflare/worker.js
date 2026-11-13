@@ -114,13 +114,24 @@ async function runDaily(env, scheduledAt = new Date()) {
     if (Number.isFinite(startedAt) && Date.now() - startedAt < 30 * 60 * 1000) {
       return { status: "skipped", reason: "run_still_active", localDate };
     }
+    // Recover only a stale lease, using a conditional update so concurrent Cron
+    // deliveries cannot both take ownership of the same daily run.
+    await env.DB.prepare(
+      "UPDATE daily_runs SET status='failed', error_code='stale_run_recovered' " +
+      "WHERE local_date=? AND status='running' AND started_at <= datetime('now','-30 minutes')"
+    ).bind(localDate).run();
   }
 
-  await env.DB.prepare(
+  // Claim the date atomically. A second concurrent invocation sees status=running
+  // and receives zero changed rows instead of starting a duplicate generation.
+  const claim = await env.DB.prepare(
     "INSERT INTO daily_runs (local_date, status, started_at) VALUES (?, 'running', CURRENT_TIMESTAMP) " +
     "ON CONFLICT(local_date) DO UPDATE SET status='running', started_at=CURRENT_TIMESTAMP, completed_at=NULL, error_code=NULL " +
-    "WHERE daily_runs.status IN ('failed','skipped','running')"
+    "WHERE daily_runs.status IN ('failed','skipped')"
   ).bind(localDate).run();
+  if (claim?.meta?.changes === 0) {
+    return { status: "skipped", reason: "run_claimed_by_another_invocation", localDate };
+  }
 
   try {
     const ideas = await generateIdeas(env, localDate);
