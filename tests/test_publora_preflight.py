@@ -32,8 +32,18 @@ class FakeClient:
             "tokenStatus": "valid",
         }
 
-    def test_connection(self, platform_id):
-        return {"status": "ok"}
+    def account_context(self):
+        return {
+            "plan": {"name": "Starter"},
+            "features": {"publishing": True, "apiAccess": True},
+            "allowedPlatforms": ["tiktok", "youtube"],
+            "quotas": {
+                "monthlyPosts": {"remaining": 13},
+                "scheduledPosts": {"remaining": 3},
+                "connections": {"remaining": 2},
+                "scheduleHorizon": {"maxScheduledDate": "2026-11-20T23:59:59.999Z"}
+            }
+        }
 
 
 class FakeD1Client:
@@ -63,6 +73,19 @@ class PubloraPreflightTests(unittest.TestCase):
         youtube = next(x for x in result["profiles"] if x["profile_id"] == "youtube_memoryagent")
         self.assertEqual("youtube_channel_id_mismatch", youtube["reason"])
         self.assertEqual("incomplete", result["status"])
+
+
+    def test_unsupported_provider_platform_blocks_preflight(self):
+        client = FakeClient()
+        client.account_context = lambda: {
+            "plan": {"name": "Starter"},
+            "features": {"publishing": True, "apiAccess": True},
+            "allowedPlatforms": ["tiktok"],
+            "quotas": {}
+        }
+        result = run_preflight(client, FakeD1Client())
+        self.assertEqual("blocked", result["publora_account"]["status"])
+        self.assertEqual(["youtube"], result["publora_account"]["unsupported_platforms"])
 
     def test_missing_d1_profile_mapping_blocks_preflight(self):
         result = run_preflight(FakeClient(), FakeD1Client(missing={"@MemoryAgent-r3c"}))
