@@ -201,7 +201,7 @@ export default {
       }
       try {
         const result = await env.DB.prepare(
-          "SELECT c.profile_id, c.topic, c.title, e.detail_json " +
+          "SELECT c.id, c.profile_id, c.topic, c.title, e.detail_json " +
           "FROM content_items c " +
           "JOIN daily_runs d ON d.local_date = c.daily_run_date " +
           "LEFT JOIN events e ON e.content_id = c.id AND e.event_type = 'daily_idea_created' " +
@@ -216,6 +216,7 @@ export default {
           let detail = {};
           try { detail = JSON.parse(row.detail_json || "{}"); } catch {}
           return {
+            content_id: row.id,
             profile_id: row.profile_id,
             topic: row.topic,
             hook: row.title,
