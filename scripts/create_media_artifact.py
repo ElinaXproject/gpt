@@ -47,6 +47,8 @@ def build_plain_bundle(manifest_path: Path, media_path: Path, output_zip: Path) 
         raise MediaArtifactError("media_size_mismatch")
     if actual_mime != expected_mime:
         raise MediaArtifactError("media_mime_mismatch")
+    if actual_mime != "video/mp4":
+        raise MediaArtifactError("media_mime_not_mp4")
     output_zip.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as archive:
         archive.write(manifest_path, "manifest.json")
@@ -67,6 +69,8 @@ def create_encrypted_bundle(
         plain_zip = Path(tmp) / "media_bundle.zip"
         details = build_plain_bundle(manifest_path, media_path, plain_zip)
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        if output_path.exists():
+            raise MediaArtifactError("encrypted_output_already_exists")
         try:
             subprocess.run(
                 ["age", "--recipient", recipient, "--output", str(output_path), str(plain_zip)],
@@ -76,10 +80,13 @@ def create_encrypted_bundle(
                 timeout=600,
             )
         except FileNotFoundError:
+            output_path.unlink(missing_ok=True)
             raise MediaArtifactError("age_binary_unavailable") from None
         except subprocess.TimeoutExpired:
+            output_path.unlink(missing_ok=True)
             raise MediaArtifactError("age_encryption_timeout") from None
         except subprocess.CalledProcessError:
+            output_path.unlink(missing_ok=True)
             raise MediaArtifactError("age_encryption_failed") from None
     if not output_path.is_file() or output_path.stat().st_size <= 0:
         raise MediaArtifactError("encrypted_bundle_missing")
