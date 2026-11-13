@@ -1,8 +1,8 @@
 # AUTORED IDEA — bezpieczeństwo, monitoring i Disaster Recovery
 
-**Wersja:** 0.1  
+**Wersja:** 0.2  
 **Data:** 2026-11-13  
-**Status:** plan kontroli; wdrożenie i testy DR nieukończone
+**Status:** D1 Time Travel VERIFIED w środowisku testowym; kopia off-site i długoterminowa nadal BLOCKED
 
 ## 1. Model zagrożeń
 
@@ -52,6 +52,26 @@ Zasady:
 6. Co miesiąc test odtworzenia do środowiska testowego; po każdej zmianie backupu — test próbki.
 7. RPO docelowe: 24 godziny dla metadanych; RTO docelowe: 4 godziny, o ile dostępna infrastruktura pozwoli.
 8. Nie uruchamiać dodatkowego płatnego storage. Jeśli brak bezpłatnego, bezpiecznego miejsca, oznaczyć backup jako BLOCKED zamiast udawać, że istnieje.
+
+### 3A. Potwierdzony mechanizm D1 Time Travel
+
+- Produkcyjna baza `autored_idea_db` działa na storage backend `production`, region EEUR, jurysdykcja EU.
+- D1 Time Travel jest automatycznie włączony; nie wymaga ręcznego uruchamiania backupu.
+- Aktualny bookmark oraz bookmark historyczny zostały pobrane przez Cloudflare API.
+- Test odtworzenia wykonano wyłącznie na tymczasowej bazie `autored_idea_dr_test`: zapisano rekord bazowy, pobrano bookmark, dodano drugi rekord, przywrócono bookmark i potwierdzono, że został tylko rekord bazowy.
+- Testowa baza została po teście usunięta. Baza produkcyjna nie była przywracana ani modyfikowana w ramach testu.
+- Konserwatywne założenie dla darmowego planu: 7 dni Time Travel; dokumentacja Cloudflare podaje 30 dni dla planu płatnego. Nie zakładać 30 dni bez potwierdzenia planu.
+- Time Travel nie zastępuje niezależnej kopii off-site ani backupu mediów i dokumentacji.
+
+Źródła: https://developers.cloudflare.com/d1/reference/time-travel/ ; https://developers.cloudflare.com/d1/platform/limits/
+
+### 3B. R2 — stan aktywacji
+- Próba odczytu listy bucketów zwróciła Cloudflare API 403 / code 10042: `Please enable R2 through the Cloudflare Dashboard`.
+- R2 nie został aktywowany ani nie utworzono bucketu; nie uruchomiono płatnej usługi.
+- Oficjalny cennik wskazuje bezpłatny Standard Tier: 10 GB-month, 1 mln operacji Class A i 10 mln Class B miesięcznie, bez opłat za egress. Strona produktu Cloudflare deklaruje możliwość rozpoczęcia bez karty; mimo tego w tym koncie R2 wymaga ręcznego włączenia w Dashboard.
+- Do czasu ręcznego włączenia R2 i sprawdzenia limitów nie oznaczać kopii off-site jako gotowej.
+
+Źródło: https://developers.cloudflare.com/r2/pricing/
 
 ## 4. Monitoring i automatyczna naprawa
 
@@ -105,7 +125,8 @@ Automatyczne naprawy zabronione:
 ## 6. Kryteria gotowości DR
 
 - [ ] Backup kodu i dokumentacji potwierdzony.
-- [ ] Backup danych operacyjnych szyfrowany i oddzielony od produkcji.
+- [x] Automatyczny point-in-time recovery D1 potwierdzony testem restore w izolowanej bazie.
+- [ ] Backup danych operacyjnych szyfrowany i oddzielony od produkcji (off-site).
 - [ ] Integralność backupu automatycznie sprawdzana.
 - [ ] Odtworzenie przetestowane i udokumentowane.
 - [ ] RPO/RTO zmierzone, nie tylko zadeklarowane.
@@ -115,7 +136,7 @@ Automatyczne naprawy zabronione:
 
 ## 7. Otwarte blokady
 
-- Brak potwierdzonej infrastruktury produkcyjnej i magazynu kopii.
+- D1 Time Travel jest aktywny i przetestowany; brak niezależnego magazynu kopii off-site. R2 wymaga ręcznego włączenia w Dashboard.
 - Brak aktywnych połączeń w projekcie Activepieces.
-- Brak testu odtworzenia, bo nie istnieje zatwierdzona kopia produkcyjnej bazy.
+- Brak testu odtworzenia pełnej kopii produkcyjnej do oddzielnego środowiska; test Time Travel wykonano na tymczasowej bazie testowej.
 - Nie wdrażać Cloudflare R2 ani płatnego magazynu w ramach obecnego budżetu.
