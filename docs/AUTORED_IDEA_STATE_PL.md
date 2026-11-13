@@ -17,14 +17,14 @@
 | Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry |
 | CI GitHub | VERIFIED | testy dokumentacji i core; składnia modułu Worker sprawdzona w Actions |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
-| Cloudflare Worker | DEPLOYED | `autored-idea-api`, aktywna wersja 100% ruchu, binding AI i D1 |
+| Cloudflare Worker | VERIFIED | `autored-idea-api`, aktywna wersja 100% ruchu, binding AI i D1; health HTTP potwierdzony w CI |
 | Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
-| Workers AI | PARTIAL | model API przeszedł prosty test JSON; pełny batch 3 profili jeszcze niezweryfikowany |
+| Workers AI | PARTIAL | prosty JSON i FLUX image smoke test przeszły; pełny batch 3 profili oraz integracja assetów niezweryfikowane |
 | Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
 | Zapis pomysłów w D1 | NOT RUN | tabela jest gotowa, brak jeszcze rekordów z Cron |
 | Research i weryfikacja źródeł | NOT RUN | osobny moduł do zbudowania |
 | Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
-| Renderowanie mediów | NOT RUN | brak renderera FFmpeg i testów plików |
+| Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; brak adaptera w Workerze |
 | TikTok @ocenionona6 | PARTIAL | Metricool połączony; brak adaptera w Workerze |
 | YouTube @MemoryAgent-r3 | BLOCKED | kanał w Metricool wymaga potwierdzenia mapowania; brak adaptera/OAuth |
@@ -46,7 +46,10 @@
 
 - Dodano architekturę, decyzje, plan etapów, bezpieczeństwo/DR, macierz testów i audyt bazowy.
 - Dodano core Python i testy idempotencji, stanów, limitów i walidacji.
-- Dodano Cloudflare Worker z harmonogramem, walidacją odpowiedzi JSON i deterministycznym zapisem pomysłów.
+- Dodano Cloudflare Worker z harmonogramem, walidacją odpowiedzi JSON, filtrem bezpieczeństwa i deterministycznym zapisem pomysłów.
+- Dodano obowiązkowy safety review w core i D1; pakiet bez pozytywnej kontroli nie przejdzie walidacji publikacji.
+- Dodano renderer Piper/FFmpeg, licencjonowany polski głos, napisy, format 9:16 i kontrolę muzyki na podstawie licencji.
+- Smoke test renderera potwierdził H.264 1080×1920 i AAC 48 kHz stereo; próbka poprawnie renderuje polskie znaki.
 - Utworzono D1, tabele, indeksy i mapowanie trzech profili.
 - Włączono Worker, D1 i AI binding; ustawiono Cron.
 - Dodano migrację D1 do repozytorium.
