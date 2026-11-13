@@ -7,6 +7,21 @@ const workerModule = await import(
   "data:text/javascript;base64," + Buffer.from(source, "utf8").toString("base64")
 );
 const worker = workerModule.default;
+const validateHumorDraft = workerModule.validateHumorDraft;
+
+const expectedHumorDraft = {
+  title: "Poniedziałek ma własne plany",
+  description: "Krótka scenka o tym, jak zwykły plan dnia potrafi się zmienić. Która scena jest najbardziej znajoma?",
+  hashtags: ["#humor", "#codziennosc", "#relatable"],
+  script: [
+    { scene: "Bohater układa spokojny plan dnia przy biurku.", duration_seconds: 8 },
+    { scene: "Pojawia się drobna, codzienna niespodzianka i plan się przesuwa.", duration_seconds: 8 },
+    { scene: "Bohater zapisuje nowy plan i zachowuje dystans do sytuacji.", duration_seconds: 8 }
+  ],
+  voiceover_text: "Miałem prosty plan na cały dzień. Potem życie dopisało własny punkt programu. Trudno, aktualizujemy plan i działamy dalej.",
+  visual_direction: "Naturalna, lekka scenka w zwykłym mieszkaniu, spokojne kadry i czytelne napisy.",
+  duration_seconds: 24
+};
 
 const expectedItems = [
   {
@@ -96,6 +111,8 @@ function createEnv(options = {}) {
       assert.equal(model, "@cf/meta/llama-3.1-8b-instruct");
       assert.equal(args.response_format.type, "json_object");
       if (options.aiError) throw options.aiError;
+      const isHumorDraft = args.messages.some(message => message.content.includes("scenariusz humorystyczny"));
+      if (isHumorDraft) return { response: JSON.stringify(options.humorDraft ?? expectedHumorDraft) };
       return { response: JSON.stringify(options.aiItems ?? { items: expectedItems }) };
     }
   };
@@ -120,7 +137,7 @@ async function invokeScheduled(env, scheduledTime) {
 test("scheduled handler creates exactly three idempotent profile ideas at 09:00 Warsaw time", async () => {
   const fixture = createEnv();
   await invokeScheduled(fixture.env, Date.UTC(2026, 10, 13, 8));
-  assert.equal(fixture.aiCalls, 1);
+  assert.equal(fixture.aiCalls, 2);
   assert.equal(fixture.state.status, "succeeded");
   const batch = fixture.statements.find(item => item.batch);
   assert.ok(batch);
@@ -130,6 +147,9 @@ test("scheduled handler creates exactly three idempotent profile ideas at 09:00 
   const eventRows = batch.batch.filter(item => item.sql.includes("daily_idea_created"));
   const themes = eventRows.map(item => JSON.parse(item.params[3]).theme).sort();
   assert.deepEqual(themes, ["education", "humor", "tech"]);
+  const draftBatch = fixture.statements.find(item => item.batch && item.batch.some(entry => entry.sql.includes("draft_generated")));
+  assert.ok(draftBatch);
+  assert.ok(draftBatch.batch[0].sql.includes("safety_review_status='pending'"));
 });
 
 test("scheduled handler skips the duplicate winter-time Cron invocation", async () => {
@@ -183,7 +203,7 @@ test("scheduled handler reclaims a stale lease before generating", async () => {
     existingStartedAt: "2020-01-01 00:00:00"
   });
   await invokeScheduled(fixture.env, Date.UTC(2026, 10, 13, 8));
-  assert.equal(fixture.aiCalls, 1);
+  assert.equal(fixture.aiCalls, 2);
   assert.equal(fixture.state.status, "succeeded");
   assert.ok(fixture.statements.some(item => item.sql.includes("stale_run_recovered")));
 });
@@ -247,4 +267,20 @@ test("ideas endpoint rejects impossible calendar dates", async () => {
   );
   assert.equal(response.status, 400);
   assert.equal(fixture.statements.length, 0);
+});
+
+
+test("humor draft validator accepts a safe, complete short-form package", () => {
+  assert.deepEqual(validateHumorDraft(expectedHumorDraft), []);
+});
+
+test("humor draft validator blocks unsafe or malformed output", () => {
+  const invalid = {
+    ...expectedHumorDraft,
+    description: "description",
+    hashtags: ["#one"],
+    voiceover_text: "short",
+    script: [{ scene: "scene", duration_seconds: 2 }]
+  };
+  assert.ok(validateHumorDraft(invalid).length > 0);
 });
