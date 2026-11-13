@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:52 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:59 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -17,7 +17,7 @@
 | Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity, retry, fresh-source gates i fact-check report; CI PASS |
 | CI GitHub | VERIFIED | workflow #116–#125: regresja, testy core, składnia Workera, harmonogram, health wdrożonego Workera oraz testy RSS PASS |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
-| Cloudflare Worker | DEPLOYED / VERIFIED | atomowy claim Cron + read-only `/ideas?date=YYYY-MM-DD`; aktywna wersja `77cfcc3edf90412799c81eceb2cb7bce`; health i walidacja endpointu PASS w CI #164 |
+| Cloudflare Worker | DEPLOYED / CODE AHEAD | deployed version `77cfcc3edf90412799c81eceb2cb7bce` has health + read-only `/ideas`; current repository source additionally generates one safe humor draft per day with `safety_review_status=pending`; CI #215 PASS, latest draft-generation source still awaits deployment |
 | Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
 | Workers AI | PARTIAL | prosty JSON i FLUX image smoke test przeszły; pełny batch 3 profili oraz integracja assetów niezweryfikowane |
 | Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
@@ -61,6 +61,7 @@
 - Dodano generator research digest z oknem 72h, kontrolą domen i dat, dopasowaniem tytułów do zapytań oraz wyraźnym oznaczeniem braku źródeł. Smoke workflow #5: PASS, artefakt `autored-research-digest-smoke` utworzony.
 - Dodano read-only endpoint Worker `/ideas?date=YYYY-MM-DD`; zwraca wyłącznie pola potrzebne researchowi, nie udostępnia opisów, praw ani sekretów. Wdrożono wersję `77cfcc3edf90412799c81eceb2cb7bce`; CI #164 potwierdził health i walidację endpointu.
 - Dodano walidator raportów fact-check: niezależne domeny, bezpośrednie mapowanie dowodów do twierdzeń, allowlista, daty w oknie 72h i hash raportu. CI #168: PASS; walidator nie zastępuje semantycznej oceny prawdziwości.
+- Worker source generuje teraz oryginalny szkic humorystyczny dla `@pieknemedia`: 3–5 scen, 20–45 sekund, metadane i voiceover; deterministyczny filtr bezpieczeństwa blokuje część niedozwolonych treści. Zapis ustawia `safety_review_status='pending'`, więc szkic nie przejdzie do publikacji bez osobnego zatwierdzenia. CI #215: 98 Python tests + 13 Worker tests PASS; kod wymaga jeszcze deploymentu.
 - Zweryfikowano D1 Time Travel: baza produkcyjna ma backend `production`, EU/EEUR; bookmark bieżący i historyczny działają. Test restore na odizolowanej bazie testowej przywrócił stan sprzed dodatkowego rekordu; baza testowa została usunięta.
 - R2 pozostaje wyłączony (Cloudflare API wymaga ręcznego włączenia w Dashboard). Przygotowano workflow szyfrowanego backupu D1 do GitHub Artifacts na 90 dni oraz lokalny weryfikator odszyfrowania, SHA-256 i SQLite integrity; wymaga `CLOUDFLARE_API_TOKEN` i `BACKUP_AGE_RECIPIENT`.
 - Dodano codzienny workflow research o 09:15 czasu Europe/Warsaw z obsługą DST i retencją artefaktu 3 dni; workflow YAML został przyjęty przez GitHub Actions, pierwszy harmonogram jeszcze nie wykonał się.
