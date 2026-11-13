@@ -1,1 +1,2 @@
 piper-tts==1.8.0
+Pillow==11.3.0
