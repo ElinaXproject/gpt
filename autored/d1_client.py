@@ -314,12 +314,6 @@ class D1Client:
         return reference
 
     def _validate_content_for_publish(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
-        allowed_profiles = {
-            "tiktok_direct": {"tiktok_pieknemedia", "tiktok_ocenionona6"},
-            "youtube_direct": {"youtube_memoryagent"},
-        }
-        if provider not in allowed_profiles or profile_id not in allowed_profiles[provider]:
-            raise D1Error("provider_profile_mismatch")
         row = self.query(
             "SELECT id, profile_id, topic, status, title, description, hashtags_json, script, "
             "safety_review_status, safety_review_reference, safety_review_report_json, rights_reference, "
@@ -334,6 +328,13 @@ class D1Client:
         item = row[0]
         if item.get("profile_id") != profile_id:
             raise D1Error("content_profile_mismatch")
+        allowed_profiles = {
+            "tiktok_direct": {"tiktok_pieknemedia", "tiktok_ocenionona6"},
+            "youtube_direct": {"youtube_memoryagent"},
+            "publora": {"tiktok_pieknemedia", "tiktok_ocenionona6"},
+        }
+        if provider not in allowed_profiles or profile_id not in allowed_profiles[provider]:
+            raise D1Error("provider_profile_mismatch")
         if item.get("status") not in {"draft", "ready", "scheduled"}:
             raise D1Error("content_status_not_publishable")
         if item.get("safety_review_status") != "passed":
