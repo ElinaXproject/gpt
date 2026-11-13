@@ -108,11 +108,11 @@ class D1Client:
         ).hexdigest()[:40]
         self.query(
             "INSERT INTO publication_jobs "
-            "(id, content_id, profile_id, scheduled_at, idempotency_key, status, attempts, platform_post_id) "
-            "VALUES (?, ?, ?, ?, ?, 'planned', 0, ?) "
+            "(id, content_id, profile_id, scheduled_at, idempotency_key, status, attempts, platform_post_id, provider) "
+            "VALUES (?, ?, ?, ?, ?, 'planned', 0, ?, 'publora') "
             "ON CONFLICT(idempotency_key) DO UPDATE SET "
             "scheduled_at=excluded.scheduled_at, status='planned', "
-            "platform_post_id=excluded.platform_post_id, updated_at=CURRENT_TIMESTAMP",
+            "platform_post_id=excluded.platform_post_id, provider='publora', updated_at=CURRENT_TIMESTAMP",
             [job_id, content_id, profile_id, scheduled_at, idempotency_key, provider_post_group_id],
         )
         update = self.query(
@@ -127,3 +127,102 @@ class D1Client:
             "content_rows_changed": (update.get("meta") or {}).get("changes", 0),
             "provider_post_group_id": provider_post_group_id,
         }
+
+
+    def reserve_job(
+        self,
+        *,
+        content_id: str,
+        profile_id: str,
+        scheduled_at: str,
+        idempotency_key: str,
+        provider: str,
+        media_artifact_id: str | None = None,
+    ) -> dict[str, Any]:
+        if provider not in {"tiktok_direct", "youtube_direct"}:
+            raise D1Error("unsupported_native_provider")
+        if not idempotency_key:
+            raise D1Error("missing_idempotency_key")
+        self._validate_content_for_publish(content_id, profile_id, provider)
+        job_id = "job_" + hashlib.sha256(
+            (content_id + "\\0" + profile_id + "\\0" + idempotency_key).encode("utf-8")
+        ).hexdigest()[:40]
+        self.query(
+            "INSERT INTO publication_jobs "
+            "(id, content_id, profile_id, scheduled_at, idempotency_key, status, attempts, provider, media_artifact_id) "
+            "VALUES (?, ?, ?, ?, ?, 'planned', 0, ?, ?) "
+            "ON CONFLICT(idempotency_key) DO NOTHING",
+            [job_id, content_id, profile_id, scheduled_at, idempotency_key, provider, media_artifact_id],
+        )
+        rows = self.query(
+            "SELECT id, content_id, profile_id, status, provider, platform_post_id "
+            "FROM publication_jobs WHERE idempotency_key=?",
+            [idempotency_key],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("job_reservation_not_confirmed")
+        job = rows[0]
+        if job.get("content_id") != content_id or job.get("profile_id") != profile_id or job.get("provider") != provider:
+            raise D1Error("idempotency_key_conflict")
+        if job.get("status") == "published":
+            raise D1Error("job_already_published")
+        if job.get("status") == "publishing":
+            raise D1Error("job_requires_reconciliation")
+        self.query(
+            "UPDATE content_items SET status='scheduled', updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND profile_id=? AND status IN ('draft','ready','scheduled')",
+            [content_id, profile_id],
+        )
+        return {"job_id": job["id"], "status": job["status"], "provider": provider}
+
+    def mark_job_publishing(self, job_id: str) -> None:
+        result = self.query(
+            "UPDATE publication_jobs SET status='publishing', attempts=attempts+1, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND status IN ('planned','ready','retry_wait')",
+            [job_id],
+        )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("job_transition_to_publishing_rejected")
+
+    def mark_job_pending(self, job_id: str, provider_post_id: str) -> None:
+        self.query(
+            "UPDATE publication_jobs SET status='publishing', platform_post_id=?, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND status='publishing'",
+            [provider_post_id, job_id],
+        )
+
+    def mark_job_published(self, job_id: str, provider_post_id: str, published_url: str | None = None) -> None:
+        rows = self.query(
+            "SELECT content_id FROM publication_jobs WHERE id=?",
+            [job_id],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("job_not_found")
+        content_id = rows[0]["content_id"]
+        self.query(
+            "UPDATE publication_jobs SET status='published', platform_post_id=?, published_url=?, "
+            "last_error_code=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='publishing'",
+            [provider_post_id, published_url, job_id],
+        )
+        self.query(
+            "UPDATE content_items SET status='published', updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            [content_id],
+        )
+
+    def mark_job_failed(self, job_id: str, error_code: str, blocked: bool = False) -> None:
+        status = "blocked" if blocked else "failed"
+        safe_code = str(error_code)[:120]
+        self.query(
+            "UPDATE publication_jobs SET status=?, last_error_code=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            [status, safe_code, job_id],
+        )
+
+    def get_due_jobs(self, now_utc: str, limit: int = 20) -> list[dict[str, Any]]:
+        if not 1 <= limit <= 100:
+            raise D1Error("invalid_due_job_limit")
+        return self.query(
+            "SELECT id, content_id, profile_id, scheduled_at, idempotency_key, provider, media_artifact_id, status "
+            "FROM publication_jobs WHERE status IN ('planned','ready','retry_wait') AND scheduled_at<=? "
+            "ORDER BY scheduled_at LIMIT ?",
+            [now_utc, limit],
+        ).get("results", [])
