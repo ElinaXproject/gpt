@@ -105,6 +105,9 @@ class D1ClientTests(unittest.TestCase):
             "fact_check_report_json": "",
             "source_urls_json": "[]",
             "source_published_at_json": "[]",
+            "media_mime": "video/mp4",
+            "media_bytes": 5,
+            "media_sha256": "a" * 64,
             "music_embedded": 1,
             "music_license_reference": "original-track-license-001",
         }
@@ -267,7 +270,7 @@ class D1ClientTests(unittest.TestCase):
                 content_id="content-1", profile_id="youtube_memoryagent",
                 scheduled_at="2026-11-14T12:00:00+00:00",
                 idempotency_key="youtube-key", provider="youtube_direct",
-                media_artifact_id="artifact-123"
+                media_artifact_id="12345"
             )
         self.assertEqual(1, len(requests))
 
@@ -293,7 +296,8 @@ class D1ClientTests(unittest.TestCase):
         result = client.reserve_job(
             content_id="content-1", profile_id="tiktok_pieknemedia",
             scheduled_at="2026-11-14T12:00:00+00:00",
-            idempotency_key="native-key", provider="tiktok_direct"
+            idempotency_key="native-key", provider="tiktok_direct",
+            media_artifact_id="12345"
         )
         self.assertEqual("planned", result["status"])
         self.assertEqual(4, len(requests))
@@ -332,6 +336,41 @@ class D1ClientTests(unittest.TestCase):
         client, requests = self.client([self.response([], changes=1)])
         client.mark_job_scheduled("job-youtube", "video-123")
         self.assertIn("provider='youtube_direct'", requests[0].data.decode("utf-8"))
+
+    def test_native_reservation_requires_numeric_media_artifact_id(self):
+        client, requests = self.client([])
+        with self.assertRaisesRegex(D1Error, "media_artifact_id_invalid"):
+            client.reserve_job(
+                content_id="content-1", profile_id="tiktok_pieknemedia",
+                scheduled_at="2026-11-14T12:00:00+00:00",
+                idempotency_key="native-key", provider="tiktok_direct",
+                media_artifact_id="not-numeric"
+            )
+        self.assertEqual([], requests)
+
+    def test_attach_media_metadata_updates_content_and_audit_event(self):
+        client, requests = self.client([
+            self.response([{"profile_id":"tiktok_pieknemedia","status":"draft"}], 0),
+            self.response([], 1),
+            self.response([], 1),
+        ])
+        client.attach_media_metadata(
+            "content-1", "tiktok_pieknemedia", "video/mp4", 1024, "a" * 64,
+            music_embedded=True, music_license_reference="licensed-track-2026"
+        )
+        self.assertEqual(3, len(requests))
+        update = json.loads(requests[1].data.decode("utf-8"))
+        self.assertIn("media_sha256", update["sql"])
+        event = json.loads(requests[2].data.decode("utf-8"))
+        self.assertIn("media_attached", event["sql"])
+
+    def test_tiktok_media_metadata_requires_licensed_embedded_music(self):
+        client, requests = self.client([])
+        with self.assertRaisesRegex(D1Error, "licensed_embedded_music_required"):
+            client.attach_media_metadata(
+                "content-1", "tiktok_pieknemedia", "video/mp4", 1024, "a" * 64
+            )
+        self.assertEqual([], requests)
 
     def test_pending_tiktok_query_only_selects_publishing_jobs_with_post_ids(self):
         client, requests = self.client([self.response([], changes=0)])
