@@ -89,7 +89,7 @@ class YouTubeUploaderTests(unittest.TestCase):
         self.assertTrue(upload_body["status"]["containsSyntheticMedia"])
         self.assertEqual("private", upload_body["status"]["privacyStatus"])
         self.assertEqual("PUT", captured[3].get_method())
-        self.assertIn("Content-Range", captured[3].header_items())
+        self.assertIn("content-range", {name.lower() for name, _value in captured[3].header_items()})
 
     def test_wrong_channel_id_blocks_before_upload(self):
         responses = [
