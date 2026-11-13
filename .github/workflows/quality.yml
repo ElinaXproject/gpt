@@ -22,3 +22,5 @@ jobs:
           python-version: "3.12"
       - name: Run regression tests
         run: python -m unittest discover -s tests -v
+      - name: Check Cloudflare Worker module syntax
+        run: node --input-type=module --check < cloudflare/worker.js
