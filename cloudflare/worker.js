@@ -193,6 +193,45 @@ export default {
         return Response.json({ service: "AUTORED IDEA", status: "degraded", database: "unavailable" }, { status: 503 });
       }
     }
+    if (request.method === "GET" && url.pathname === "/ideas") {
+      const localDate = url.searchParams.get("date") || "";
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(localDate) || Number.isNaN(Date.parse(localDate + "T00:00:00Z"))) {
+        return Response.json({ error: "invalid_date" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      }
+      try {
+        const result = await env.DB.prepare(
+          "SELECT c.profile_id, c.topic, c.title, e.detail_json " +
+          "FROM content_items c " +
+          "JOIN daily_runs d ON d.local_date = c.daily_run_date " +
+          "LEFT JOIN events e ON e.content_id = c.id AND e.event_type = 'daily_idea_created' " +
+          "WHERE c.daily_run_date = ? AND c.status = 'idea' AND d.status = 'succeeded' " +
+          "ORDER BY c.profile_id"
+        ).bind(localDate).all();
+        const rows = result?.results ?? [];
+        if (!rows.length) {
+          return Response.json({ status: "empty", date: localDate, items: [] }, { status: 404, headers: { "Cache-Control": "no-store" } });
+        }
+        const items = rows.map((row) => {
+          let detail = {};
+          try { detail = JSON.parse(row.detail_json || "{}"); } catch {}
+          return {
+            profile_id: row.profile_id,
+            topic: row.topic,
+            hook: row.title,
+            theme: detail.theme || "",
+            format: detail.format || "",
+            research_query: detail.research_query || "",
+            editorial_note: detail.editorial_note || ""
+          };
+        });
+        return Response.json(
+          { status: "ok", date: localDate, items },
+          { headers: { "Cache-Control": "no-store" } }
+        );
+      } catch {
+        return Response.json({ error: "database_unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      }
+    }
     return Response.json({ error: "not_found" }, { status: 404 });
   },
 
