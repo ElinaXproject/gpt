@@ -83,6 +83,14 @@ Aktualny snapshot Publora Starter: 15 platform-postów miesięcznie łącznie, 3
 4. Przed uploadem artefaktu uruchamia `python scripts/create_media_artifact.py --manifest manifest.json --media final.mp4 --output media_bundle.zip.age` i publikuje wyłącznie plik `media_bundle.zip.age`.
 5. Nigdy nie uploadować do publicznego repozytorium surowego `manifest.json`, `.mp4` ani plaintext ZIP. Brak recipienta lub identity blokuje proces.
 
+### Human fact-check gate dla treści faktograficznych
+
+- Dla profilu YouTube każdy claim musi mieć bezpośrednie wsparcie z co najmniej dwóch niezależnych, allowlistowanych domen; dla profilu edukacyjnego TikTok wymagane jest co najmniej jedno źródło. Wszystkie źródła muszą mieścić się w oknie 72 godzin.
+- Raport musi zawierać `profile_key`, `reviewed_at` z timezone, `reviewer`, `reviewer_type: "human"`, `decision: "approved"`, listę `claims` oraz `evidence` z URL, tytułem, datą i identyfikatorami wspieranych claims.
+- Po rzeczywistym przeczytaniu źródeł i sprawdzeniu każdego twierdzenia uprawniony recenzent uruchamia: `python scripts/submit_factcheck.py --content-id ID --profile-id PROFILE --report factcheck.json`.
+- CLI waliduje raport i zapisuje jego JSON, źródła oraz kryptograficzną referencję w D1. Publisher ponownie waliduje raport przy rezerwacji zadania. Raport AI nie zastępuje ludzkiego zatwierdzenia.
+- Ten gate nie zastępuje osobnego `safety_review_status=passed` ani kontroli praw do mediów.
+
 ## 6. Bramka bezpieczeństwa
 
 ## 6. Bramka bezpieczeństwa
