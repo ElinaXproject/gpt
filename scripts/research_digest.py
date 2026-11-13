@@ -168,10 +168,20 @@ def build_digest(ideas: list[dict], feeds: list[dict] | None = None, now: dateti
 
     profiles = []
     for idea in ideas:
+        profile_id = idea.get("profile_id")
         query = str(idea.get("research_query", "")).strip()
+        if profile_id == "tiktok_pieknemedia" or idea.get("theme") == "humor":
+            profiles.append({
+                "profile_id": profile_id,
+                "topic": idea.get("topic"),
+                "research_query": query,
+                "status": "research_not_required",
+                "sources": [],
+            })
+            continue
         matches = match_sources(query, candidates)
         profiles.append({
-            "profile_id": idea.get("profile_id"),
+            "profile_id": profile_id,
             "topic": idea.get("topic"),
             "research_query": query,
             "status": "sources_found" if matches else "no_recent_source_match",
