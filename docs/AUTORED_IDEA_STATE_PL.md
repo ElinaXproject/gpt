@@ -31,11 +31,19 @@
 | Publikacja E2E | BLOCKED | klient Publora i pipeline zapisujący job do D1 mają testy CI PASS; brak API secrets i dwóch połączeń kont; żadna publikacja nie została wykonana |
 | Backup / restore | BLOCKED | plan istnieje, brak odseparowanego magazynu i testu odtworzenia |
 
+## Kontrola produkcyjnej bazy D1 — 2026-11-13 21:03 Europe/Warsaw
+
+- Odczytano bez modyfikacji produkcyjną bazę `autored_idea_db` w regionie EEUR.
+- Profile: dokładnie 3 rekordy, wszystkie `enabled=1`: TikTok `@pieknemedia`, TikTok `@ocenionona6`, YouTube `@MemoryAgent-r3c`.
+- `content_items`: 0 rekordów; `publication_jobs`: 0 rekordów; `daily_runs`: 0 rekordów; `provider_tokens`: 0 rekordów.
+- Wniosek: schema i mapowanie profili są wdrożone, ale pierwszy przebieg Cron nie utworzył jeszcze treści; nie ma aktywnej autoryzacji tokenowej w D1 i nie ma zadań gotowych do publikacji.
+- Dodatkowo oba publish runnery obliczają SHA-256 mediów strumieniowo w blokach 8 MiB zamiast ładować cały plik do pamięci; testy hash helpera przechodzą w CI #279.
+
 ## Zasoby wdrożone
 
 - Cloudflare Worker: `autored-idea-api`.
 - Cloudflare D1: `autored_idea_db`, EU jurisdiction, region EEUR.
-- Workers AI binding: `AI`, model `@cf/zai-org/glm-4.7-flash`.
+- Workers AI binding: `AI`; kod Workera jawnie wywołuje model `@cf/meta/llama-3.1-8b-instruct`.
 - D1 binding: `DB`.
 - Cron: `0 7,8 * * *` UTC; kod filtruje wywołanie do 09:00 czasu polskiego.
 - KV i R2 nie są używane.
