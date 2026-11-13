@@ -70,6 +70,7 @@ class ContentPackage:
     rights_reference: str = ""
     ai_disclosure_required: bool = False
     ai_disclosure_set: bool = False
+    safety_review_passed: bool = False
 
     def validate(self) -> list[str]:
         errors: list[str] = []
@@ -91,6 +92,8 @@ class ContentPackage:
             errors.append("missing_rights_reference")
         if self.ai_disclosure_required and not self.ai_disclosure_set:
             errors.append("missing_ai_disclosure")
+        if not self.safety_review_passed:
+            errors.append("safety_review_not_passed")
         if any(not tag.startswith("#") for tag in self.hashtags):
             errors.append("invalid_hashtag")
         return errors
