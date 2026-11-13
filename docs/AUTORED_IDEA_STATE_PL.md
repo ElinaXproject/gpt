@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:38 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:41 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -22,7 +22,7 @@
 | Workers AI | PARTIAL | prosty JSON i FLUX image smoke test przeszły; pełny batch 3 profili oraz integracja assetów niezweryfikowane |
 | Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
 | Zapis pomysłów w D1 | NOT RUN | tabela jest gotowa, brak jeszcze rekordów z Cron |
-| Research i weryfikacja źródeł | PARTIAL | smoke test RSS 9/9 PASS; pełny pipeline research/fact-check jeszcze do zbudowania |
+| Research i weryfikacja źródeł | PARTIAL | 9/9 RSS PASS; 72h digest z dopasowaniem tematów działa i zapisuje artefakt; fact-check nadal ręczny/niezautomatyzowany |
 | Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
 | Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; bezpieczny klient API i testy gotowe; brak klucza API w środowisku wykonawczym |
@@ -58,6 +58,8 @@
 - Wdrożono tę poprawkę do Cloudflare jako wersję `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; zachowano istniejące bindingi D1/AI i harmonogram Cron.
 - Odczyt Cloudflare API potwierdził wersję, bindingi i harmonogram po wdrożeniu; GitHub Actions #125 potwierdził HTTP health 200 po wdrożeniu.
 - Smoke test RSS potwierdził 9/9 feedów; poprawiono walidację hostów i osobną allowlistę endpointów RSS.
+- Dodano generator research digest z oknem 72h, kontrolą domen i dat, dopasowaniem tytułów do zapytań oraz wyraźnym oznaczeniem braku źródeł. Smoke workflow #5: PASS, artefakt `autored-research-digest-smoke` utworzony.
+- Dodano codzienny workflow research o 09:15 czasu Europe/Warsaw z obsługą DST i retencją artefaktu 3 dni; workflow YAML został przyjęty przez GitHub Actions, pierwszy harmonogram jeszcze nie wykonał się.
 - Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni i idempotency key. CI #131: PASS. Nie wykonano żadnej publikacji.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
@@ -72,7 +74,7 @@
 2. Brak backendowych poświadczeń Publora/Metricool w bezpiecznych sekretach; połączenia ChatGPT nie są dostępne bezpośrednio dla Workera/GitHub Actions.
 3. vidIQ potwierdził kanał `Memory Agent`, handle `@memoryagent-r3c`, ID `UCOE1EX9WZGDesaJNYIEhj7g`; Metricool wskazuje inne ID `UCRmmEQysOmUbs8mpZEOgtLw`, więc mapowanie YouTube jest BLOCKED i publikacja przez Metricool zabroniona do czasu naprawy.
 4. Brak renderera i testów FFmpeg.
-5. Brak potwierdzonego darmowego sposobu generowania obrazów/wideo w wymaganej skali.
+5. Renderer działa w testach; pełne automatyczne generowanie treści i łączenie research → scenariusz → render → publikacja nadal nieukończone.
 6. Brak bezpiecznego, odseparowanego miejsca backupu i testu restore.
 7. Nie wykonano jeszcze pierwszego zaplanowanego przebiegu Cron.
 8. Nie wykonano żadnej publikacji publicznej.
