@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 16:50 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:00 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -9,49 +9,60 @@
 
 | Obszar | Status | Dowód |
 |---|---|---|
-| Audyt bazowy | VERIFIED | odczyty GitHub, Activepieces, Publora, Metricool; szczegóły w audycie 2026-11-13 |
-| Architektura | DONE | dokument architektury zapisany i odczytany z repozytorium |
-| Plan etapów | DONE | roadmapa 0–12 zapisana |
-| Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, kopii, retencji, RPO/RTO i procedur odzyskiwania |
-| Plan testów | DONE (projekt) | macierz T01–T22 |
-| Core software | DONE (szkielet) | moduł `autored/core.py` |
-| Testy automatyczne repo | VERIFIED | GitHub Actions run 43456515985 — SUCCESS |
-| Profile | PARTIAL | dwa konta TikTok mapowane; YouTube channel ID widoczny w Metricool, uchwyt niepotwierdzony |
-| Orkiestracja produkcyjna | BLOCKED | Activepieces: 0 flow, 0 połączeń |
-| TikTok @pieknemedia | PARTIAL | Publora active, ale limit 15 postów/mies. i 3 sloty; brak adaptera w Activepieces |
-| TikTok @ocenionona6 | PARTIAL | Metricool brand RED ABSURD IDEA; brak połączenia w Activepieces |
-| YouTube @MemoryAgent-r3 | BLOCKED | brak potwierdzonego mapowania kanału i OAuth upload |
-| Renderowanie mediów | NOT RUN | brak wdrożonego renderera i testów plików |
+| Audyt bazowy | VERIFIED | odczyty GitHub, Activepieces, Publora, Metricool i Cloudflare |
+| Architektura | DONE | Cloudflare Worker + D1 + Workers AI, GitHub Actions/FFmpeg |
+| Plan etapów | DONE | roadmapa etapów 0–12 |
+| Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, backupu, retencji, RPO/RTO i napraw |
+| Plan testów | DONE (projekt) | macierz T01–T22 plus kontrole wdrożenia |
+| Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry |
+| CI GitHub | VERIFIED | testy dokumentacji i core; składnia modułu Worker sprawdzona w Actions |
+| Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
+| Cloudflare Worker | DEPLOYED | `autored-idea-api`, aktywna wersja 100% ruchu, binding AI i D1 |
+| Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
+| Workers AI | PARTIAL | model API przeszedł prosty test JSON; pełny batch 3 profili jeszcze niezweryfikowany |
+| Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
+| Zapis pomysłów w D1 | NOT RUN | tabela jest gotowa, brak jeszcze rekordów z Cron |
+| Research i weryfikacja źródeł | NOT RUN | osobny moduł do zbudowania |
+| Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
+| Renderowanie mediów | NOT RUN | brak renderera FFmpeg i testów plików |
+| TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; brak adaptera w Workerze |
+| TikTok @ocenionona6 | PARTIAL | Metricool połączony; brak adaptera w Workerze |
+| YouTube @MemoryAgent-r3 | BLOCKED | kanał w Metricool wymaga potwierdzenia mapowania; brak adaptera/OAuth |
 | Publikacja E2E | NOT RUN | żadna publikacja nie została wykonana |
-| Backup / restore | BLOCKED | plan istnieje, brak zatwierdzonej infrastruktury i testu restore |
+| Backup / restore | BLOCKED | plan istnieje, brak odseparowanego magazynu i testu odtworzenia |
 
-## Zmiany wykonane w tym przebiegu
+## Zasoby wdrożone
 
-- Dodano architekturę systemu i schemat przepływu.
-- Dodano plan bezpieczeństwa, monitoringu i Disaster Recovery.
-- Dodano plan testów T01–T22.
-- Dodano audyt stanu integracji.
-- Dodano indeks dokumentacji do README.
-- Rozszerzono testy repozytorium o kontrolę dokumentów AUTORED IDEA.
-- Dodano moduł Python bez zewnętrznych zależności: profile, walidacja pakietu treści, klucz idempotencji, maszyna stanów publikacji, licznik limitu i klasyfikacja retry.
-- Dodano testy jednostkowe core: profil, walidacja, idempotencja, maszyna stanów, limit i retry.
-- Workflow GitHub Actions zakończył się SUCCESS dla commita `fe878162dde68437ff473bc29f324b61718533ec`.
+- Cloudflare Worker: `autored-idea-api`.
+- Cloudflare D1: `autored_idea_db`, EU jurisdiction, region EEUR.
+- Workers AI binding: `AI`, model `@cf/zai-org/glm-4.7-flash`.
+- D1 binding: `DB`.
+- Cron: `0 7,8 * * *` UTC; kod filtruje wywołanie do 09:00 czasu polskiego.
+- KV i R2 nie są używane.
+- Endpoint health jest skonfigurowany, ale zewnętrzny odczyt nie został potwierdzony w tym środowisku.
+- Szczegóły i dowody: `docs/AUTORED_IDEA_DEPLOYMENT_2026-11-13_PL.md`.
 
-## Najważniejsze ograniczenia
+## Zmiany wykonane
 
-1. Nie istnieje obecnie działający przepływ Activepieces w wybranym projekcie.
-2. Nie ma połączeń OAuth/API w Activepieces.
-3. Publora Starter nie wystarczy na dużą częstotliwość publikacji.
-4. TikTok Direct Post wymaga zatwierdzenia aplikacji i autoryzacji kont.
-5. YouTube upload wymaga OAuth użytkownika i zakresu `youtube.upload`.
-6. Brak infrastruktury produkcyjnej dostępnej do wdrożenia i przetestowania.
-7. Nie ma dowodu, że system może bezpłatnie generować wideo/obrazy w potrzebnej skali.
-8. Nie wykonano publikacji i nie wolno przedstawiać projektu jako ukończonego.
+- Dodano architekturę, decyzje, plan etapów, bezpieczeństwo/DR, macierz testów i audyt bazowy.
+- Dodano core Python i testy idempotencji, stanów, limitów i walidacji.
+- Dodano Cloudflare Worker z harmonogramem, walidacją odpowiedzi JSON i deterministycznym zapisem pomysłów.
+- Utworzono D1, tabele, indeksy i mapowanie trzech profili.
+- Włączono Worker, D1 i AI binding; ustawiono Cron.
+- Dodano migrację D1 do repozytorium.
+- CI potwierdziło testy oraz składnię modułu Workera.
 
-## Następny krok techniczny
+## Najważniejsze blokady
 
-Zbudować testowany adapter i walidator pakietów publikacyjnych bez podłączania sekretów, następnie uruchomić integracje dopiero po uzyskaniu oficjalnych autoryzacji. Równolegle ustalić bezpłatne środowisko, które może działać 24/7, oraz bezpieczne miejsce backupu.
+1. Brak adapterów publikacji dla Publora, Metricool, TikTok i YouTube.
+2. Brak poświadczeń platform publikacyjnych w Workerze.
+3. Brak potwierdzenia, że YouTube channel ID należy do `@MemoryAgent-r3`.
+4. Brak renderera i testów FFmpeg.
+5. Brak potwierdzonego darmowego sposobu generowania obrazów/wideo w wymaganej skali.
+6. Brak bezpiecznego, odseparowanego miejsca backupu i testu restore.
+7. Nie wykonano jeszcze pierwszego zaplanowanego przebiegu Cron.
+8. Nie wykonano żadnej publikacji publicznej.
 
-## Wznowienie
+## Zasada wznowienia
 
-Zawsze najpierw odczytaj ten plik, audyt bazowy i execution plan. Nie odtwarzaj poprzednich flow na podstawie starych wpisów.
+Zawsze najpierw odczytaj ten plik, deployment log, audyt bazowy i execution plan. Nie odtwarzaj starych flow z pamięci ani nie zmieniaj działających elementów bez testów.
