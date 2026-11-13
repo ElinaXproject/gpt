@@ -188,10 +188,11 @@ class D1ClientTests(unittest.TestCase):
             )], 0)
         ])
         with self.assertRaisesRegex(D1Error, "fact_check_not_passed"):
-            client.record_scheduled(
+            client.reserve_job(
                 content_id="content-1", profile_id="youtube_memoryagent",
                 scheduled_at="2026-11-14T12:00:00+00:00",
-                idempotency_key="schedule-key", provider_post_group_id="group-1"
+                idempotency_key="youtube-key", provider="youtube_direct",
+                media_artifact_id="12345"
             )
         self.assertEqual(1, len(requests))
 
@@ -339,7 +340,7 @@ class D1ClientTests(unittest.TestCase):
         self.assertIn("provider='youtube_direct'", requests[0].data.decode("utf-8"))
 
     def test_native_provider_cannot_publish_another_platform_profile(self):
-        client, requests = self.client([])
+        client, requests = self.client([self.response([self.publishable_content()], 0)])
         with self.assertRaisesRegex(D1Error, "provider_profile_mismatch"):
             client.reserve_job(
                 content_id="content-1", profile_id="tiktok_pieknemedia",
@@ -347,7 +348,7 @@ class D1ClientTests(unittest.TestCase):
                 idempotency_key="wrong-provider", provider="youtube_direct",
                 media_artifact_id="12345"
             )
-        self.assertEqual([], requests)
+        self.assertEqual(1, len(requests))
 
     def test_native_reservation_requires_numeric_media_artifact_id(self):
         client, requests = self.client([])
