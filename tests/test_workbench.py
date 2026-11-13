@@ -184,6 +184,9 @@ class WorkbenchRepositoryTests(unittest.TestCase):
         self.assertIn('VOICE = "pl_PL-darkman-medium"', renderer)
         self.assertIn("from PIL import Image, ImageDraw, ImageFont", renderer)
         self.assertIn("make_text_overlay", renderer)
+        self.assertIn("write_background", renderer)
+        for theme in ("tech", "humor", "education"):
+            self.assertIn(f"\"{theme}\"", renderer)
         self.assertIn("music_license_reference_required", renderer)
         self.assertIn("licensed_music_required", renderer)
         self.assertIn('"libx264"', renderer)
