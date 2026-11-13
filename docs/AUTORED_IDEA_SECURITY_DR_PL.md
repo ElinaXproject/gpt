@@ -73,6 +73,15 @@ Zasady:
 
 Źródło: https://developers.cloudflare.com/r2/pricing/
 
+### 3D. Token vault platform
+
+- D1 tabela `provider_tokens` została dodana do produkcyjnej bazy.
+- Refresh tokeny TikTok są przechowywane jako ciphertext AES-256-GCM; każdy zapis ma losowy 96-bit IV i AAD związane z providerem, profilem i wersją klucza.
+- Rotacja refresh tokenu zapisuje nową wartość zaszyfrowaną w D1. Jawne tokeny nie są logowane.
+- Klucz szyfrujący `AUTORED_TOKEN_ENCRYPTION_KEY` ma 32 bajty po dekodowaniu Base64 i musi być przechowywany wyłącznie jako GitHub Actions secret. Nie commitować klucza ani tokenów.
+- Backup D1 obejmuje wyłącznie zaszyfrowane tokeny; cały eksport jest dodatkowo szyfrowany age przed wysłaniem do artefaktu.
+- Implementacja i testy AES-GCM są w `autored/token_vault.py` oraz `tests/test_token_vault.py`.
+
 ### 3C. Codzienna kopia off-site — workflow gotowy, aktywacja wymaga sekretów
 
 Workflow `.github/workflows/d1-backup.yml`:
