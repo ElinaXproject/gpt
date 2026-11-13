@@ -29,7 +29,7 @@ class Profile:
 PROFILES: dict[str, Profile] = {
     "tiktok_ocenionona6": Profile("tiktok_ocenionona6", Platform.TIKTOK, "@ocenionona6"),
     "tiktok_pieknemedia": Profile("tiktok_pieknemedia", Platform.TIKTOK, "@pieknemedia"),
-    "youtube_memoryagent": Profile("youtube_memoryagent", Platform.YOUTUBE, "@MemoryAgent-r3"),
+    "youtube_memoryagent": Profile("youtube_memoryagent", Platform.YOUTUBE, "@MemoryAgent-r3c"),
 }
 
 
