@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:48 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:49 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -62,7 +62,7 @@
 - Dodano read-only endpoint Worker `/ideas?date=YYYY-MM-DD`; zwraca wyłącznie pola potrzebne researchowi, nie udostępnia opisów, praw ani sekretów. Wdrożono wersję `77cfcc3edf90412799c81eceb2cb7bce`; CI #164 potwierdził health i walidację endpointu.
 - Dodano walidator raportów fact-check: niezależne domeny, bezpośrednie mapowanie dowodów do twierdzeń, allowlista, daty w oknie 72h i hash raportu. CI #168: PASS; walidator nie zastępuje semantycznej oceny prawdziwości.
 - Zweryfikowano D1 Time Travel: baza produkcyjna ma backend `production`, EU/EEUR; bookmark bieżący i historyczny działają. Test restore na odizolowanej bazie testowej przywrócił stan sprzed dodatkowego rekordu; baza testowa została usunięta.
-- R2 pozostaje wyłączony (Cloudflare API wymaga ręcznego włączenia w Dashboard). Przygotowano workflow szyfrowanego backupu D1 do GitHub Artifacts na 90 dni; wymaga `CLOUDFLARE_API_TOKEN` i `BACKUP_AGE_RECIPIENT`.
+- R2 pozostaje wyłączony (Cloudflare API wymaga ręcznego włączenia w Dashboard). Przygotowano workflow szyfrowanego backupu D1 do GitHub Artifacts na 90 dni oraz lokalny weryfikator odszyfrowania, SHA-256 i SQLite integrity; wymaga `CLOUDFLARE_API_TOKEN` i `BACKUP_AGE_RECIPIENT`.
 - Dodano codzienny workflow research o 09:15 czasu Europe/Warsaw z obsługą DST i retencją artefaktu 3 dni; workflow YAML został przyjęty przez GitHub Actions, pierwszy harmonogram jeszcze nie wykonał się.
 - Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni i idempotency key. CI #131: PASS. Nie wykonano żadnej publikacji.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
