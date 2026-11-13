@@ -27,6 +27,7 @@ class AutoRedCoreTests(unittest.TestCase):
             "rights_reference": "original-or-licensed",
             "ai_disclosure_required": True,
             "ai_disclosure_set": True,
+            "safety_review_passed": True,
         }
         values.update(overrides)
         return ContentPackage(**values)
@@ -43,6 +44,10 @@ class AutoRedCoreTests(unittest.TestCase):
     def test_missing_ai_disclosure_blocks_package(self):
         package = self.package(ai_disclosure_set=False)
         self.assertIn("missing_ai_disclosure", package.validate())
+
+    def test_missing_safety_review_blocks_package(self):
+        package = self.package(safety_review_passed=False)
+        self.assertIn("safety_review_not_passed", package.validate())
 
     def test_missing_rights_reference_blocks_package(self):
         package = self.package(rights_reference="")
