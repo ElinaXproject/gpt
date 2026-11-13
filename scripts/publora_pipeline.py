@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,7 +38,9 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
             raise PubloraError("missing_" + field)
     if item.get("safety_review_status") != "passed":
         raise PubloraError("safety_review_not_passed")
-    if item.get("ai_disclosure_required") and not item.get("ai_disclosure_set"):
+    if item.get("ai_disclosure_required") and (
+        not item.get("ai_disclosure_set") or item.get("ai_generated") is not True
+    ):
         raise PubloraError("missing_ai_disclosure")
     if not isinstance(item.get("ai_generated"), bool):
         raise PubloraError("ai_generated_flag_required")
@@ -58,8 +61,17 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
     if not media_path.is_file():
         raise PubloraError("media_file_missing")
     mime = item.get("media_mime", "")
-    if not isinstance(mime, str) or not (mime.startswith("video/") or mime.startswith("image/")):
+    detected_mime = mimetypes.guess_type(media_path.name)[0]
+    if (
+        not isinstance(mime, str)
+        or not (mime.startswith("video/") or mime.startswith("image/"))
+        or detected_mime != mime
+    ):
         raise PubloraError("unsupported_media_type")
+    if profile["platform"] == "tiktok" and len(item["content"].encode("utf-16-le")) // 2 > 2200:
+        raise PubloraError("tiktok_caption_too_long")
+    if profile["platform"] == "youtube" and len(item["content"]) > 5000:
+        raise PubloraError("youtube_description_too_long")
 
     settings: dict[str, Any]
     if profile["platform"] == "tiktok":
@@ -91,6 +103,8 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
         if tags:
             if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
                 raise PubloraError("youtube_tags_invalid")
+            if sum(len(tag) for tag in tags) + max(0, len(tags) - 1) > 500:
+                raise PubloraError("youtube_tags_too_long")
             settings["youtube"]["tags"] = tags
     return profile, {"scheduled_time": scheduled_time, "platform_settings": settings, "media_path": media_path}
 
