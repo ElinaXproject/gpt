@@ -6,6 +6,7 @@ import json
 import os
 import urllib.error
 import urllib.request
+from datetime import datetime
 from typing import Any
 
 
@@ -110,10 +111,30 @@ class D1Client:
             "INSERT INTO publication_jobs "
             "(id, content_id, profile_id, scheduled_at, idempotency_key, status, attempts, platform_post_id, provider) "
             "VALUES (?, ?, ?, ?, ?, 'planned', 0, ?, 'publora') "
-            "ON CONFLICT(idempotency_key) DO UPDATE SET "
-            "scheduled_at=excluded.scheduled_at, status='planned', "
-            "platform_post_id=excluded.platform_post_id, provider='publora', updated_at=CURRENT_TIMESTAMP",
+            "ON CONFLICT(idempotency_key) DO NOTHING",
             [job_id, content_id, profile_id, scheduled_at, idempotency_key, provider_post_group_id],
+        )
+        existing = self.query(
+            "SELECT id, content_id, profile_id, status, provider, platform_post_id "
+            "FROM publication_jobs WHERE idempotency_key=?",
+            [idempotency_key],
+        ).get("results", [])
+        if len(existing) != 1:
+            raise D1Error("job_record_not_confirmed")
+        job = existing[0]
+        if job.get("content_id") != content_id or job.get("profile_id") != profile_id or job.get("provider") != "publora":
+            raise D1Error("idempotency_key_conflict")
+        if job.get("status") == "published":
+            raise D1Error("job_already_published")
+        if job.get("status") == "publishing":
+            raise D1Error("job_requires_reconciliation")
+        if job.get("status") not in {"planned", "ready", "retry_wait"}:
+            raise D1Error("job_not_reservable")
+        if job.get("platform_post_id") not in {None, provider_post_group_id}:
+            raise D1Error("provider_post_group_mismatch")
+        self.query(
+            "UPDATE publication_jobs SET platform_post_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            [provider_post_group_id, job["id"]],
         )
         update = self.query(
             "UPDATE content_items SET status='scheduled', updated_at=CURRENT_TIMESTAMP "
@@ -144,8 +165,14 @@ class D1Client:
         if not idempotency_key:
             raise D1Error("missing_idempotency_key")
         self._validate_content_for_publish(content_id, profile_id, provider)
+        try:
+            parsed_schedule = datetime.fromisoformat(scheduled_at.replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            raise D1Error("invalid_scheduled_at") from None
+        if parsed_schedule.tzinfo is None:
+            raise D1Error("scheduled_at_missing_timezone")
         job_id = "job_" + hashlib.sha256(
-            (content_id + "\\0" + profile_id + "\\0" + idempotency_key).encode("utf-8")
+            (content_id + "\0" + profile_id + "\0" + idempotency_key).encode("utf-8")
         ).hexdigest()[:40]
         self.query(
             "INSERT INTO publication_jobs "
@@ -168,6 +195,8 @@ class D1Client:
             raise D1Error("job_already_published")
         if job.get("status") == "publishing":
             raise D1Error("job_requires_reconciliation")
+        if job.get("status") not in {"planned", "ready", "retry_wait"}:
+            raise D1Error("job_not_reservable")
         self.query(
             "UPDATE content_items SET status='scheduled', updated_at=CURRENT_TIMESTAMP "
             "WHERE id=? AND profile_id=? AND status IN ('draft','ready','scheduled')",
@@ -185,11 +214,13 @@ class D1Client:
             raise D1Error("job_transition_to_publishing_rejected")
 
     def mark_job_pending(self, job_id: str, provider_post_id: str) -> None:
-        self.query(
+        result = self.query(
             "UPDATE publication_jobs SET status='publishing', platform_post_id=?, updated_at=CURRENT_TIMESTAMP "
             "WHERE id=? AND status='publishing'",
             [provider_post_id, job_id],
         )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("job_pending_update_rejected")
 
     def mark_job_published(self, job_id: str, provider_post_id: str, published_url: str | None = None) -> None:
         rows = self.query(
@@ -199,11 +230,13 @@ class D1Client:
         if len(rows) != 1:
             raise D1Error("job_not_found")
         content_id = rows[0]["content_id"]
-        self.query(
+        result = self.query(
             "UPDATE publication_jobs SET status='published', platform_post_id=?, published_url=?, "
             "last_error_code=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='publishing'",
             [provider_post_id, published_url, job_id],
         )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("job_publish_transition_rejected")
         self.query(
             "UPDATE content_items SET status='published', updated_at=CURRENT_TIMESTAMP WHERE id=?",
             [content_id],
