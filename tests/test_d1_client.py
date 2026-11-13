@@ -338,6 +338,17 @@ class D1ClientTests(unittest.TestCase):
         client.mark_job_scheduled("job-youtube", "video-123")
         self.assertIn("provider='youtube_direct'", requests[0].data.decode("utf-8"))
 
+    def test_native_provider_cannot_publish_another_platform_profile(self):
+        client, requests = self.client([])
+        with self.assertRaisesRegex(D1Error, "provider_profile_mismatch"):
+            client.reserve_job(
+                content_id="content-1", profile_id="tiktok_pieknemedia",
+                scheduled_at="2026-11-14T12:00:00+00:00",
+                idempotency_key="wrong-provider", provider="youtube_direct",
+                media_artifact_id="12345"
+            )
+        self.assertEqual([], requests)
+
     def test_native_reservation_requires_numeric_media_artifact_id(self):
         client, requests = self.client([])
         with self.assertRaisesRegex(D1Error, "media_artifact_id_invalid"):
