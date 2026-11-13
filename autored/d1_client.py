@@ -213,6 +213,15 @@ class D1Client:
         if (result.get("meta") or {}).get("changes", 0) != 1:
             raise D1Error("job_transition_to_publishing_rejected")
 
+    def mark_job_scheduled(self, job_id: str, provider_post_id: str) -> None:
+        result = self.query(
+            "UPDATE publication_jobs SET status='planned', platform_post_id=?, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND status='publishing' AND provider='youtube_direct'",
+            [provider_post_id, job_id],
+        )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("job_schedule_transition_rejected")
+
     def mark_job_pending(self, job_id: str, provider_post_id: str) -> None:
         result = self.query(
             "UPDATE publication_jobs SET status='publishing', platform_post_id=?, updated_at=CURRENT_TIMESTAMP "
@@ -256,6 +265,7 @@ class D1Client:
         return self.query(
             "SELECT id, content_id, profile_id, scheduled_at, idempotency_key, provider, media_artifact_id, status "
             "FROM publication_jobs WHERE status IN ('planned','ready','retry_wait') AND scheduled_at<=? "
+            "AND (provider!='youtube_direct' OR platform_post_id IS NULL) "
             "ORDER BY scheduled_at LIMIT ?",
             [now_utc, limit],
         ).get("results", [])
