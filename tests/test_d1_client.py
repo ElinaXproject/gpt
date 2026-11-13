@@ -198,7 +198,15 @@ class D1ClientTests(unittest.TestCase):
         client, requests = self.client([self.response([], changes=0)])
         client.get_due_jobs("2026-11-14T12:00:00Z", limit=10)
         sql = json.loads(requests[0].data.decode("utf-8"))["sql"]
-        self.assertIn("provider!='youtube_direct' OR platform_post_id IS NULL", sql)
+        self.assertIn("provider='tiktok_direct'", sql)
+
+
+    def test_youtube_scheduler_selects_only_unuploaded_future_jobs(self):
+        client, requests = self.client([self.response([], changes=0)])
+        client.get_youtube_jobs_to_schedule("2026-11-14T12:00:00Z", horizon_hours=168, limit=10)
+        sql = json.loads(requests[0].data.decode("utf-8"))["sql"]
+        self.assertIn("provider='youtube_direct'", sql)
+        self.assertIn("platform_post_id IS NULL", sql)
 
     def test_mark_job_publishing_requires_valid_state_transition(self):
         client, _requests = self.client([self.response([], changes=1)])
