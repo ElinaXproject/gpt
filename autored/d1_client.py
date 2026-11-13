@@ -7,7 +7,7 @@ from pathlib import Path
 import os
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .factcheck import Claim, Evidence, FactCheckReport
@@ -35,6 +35,42 @@ def _allowed_research_domains() -> set[str]:
         }
     except (OSError, json.JSONDecodeError, TypeError):
         raise D1Error("research_domain_allowlist_unavailable") from None
+
+
+def _safety_review_reference(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sr_" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _validate_safety_review_payload(payload: dict[str, Any], content_id: str, profile_id: str) -> list[str]:
+    errors: list[str] = []
+    if payload.get("content_id") != content_id or payload.get("profile_id") != profile_id:
+        errors.append("safety_review_content_mapping_invalid")
+    if payload.get("decision") != "approved":
+        errors.append("safety_review_not_approved")
+    if not str(payload.get("reviewer") or "").strip():
+        errors.append("safety_review_reviewer_missing")
+    try:
+        reviewed_at = datetime.fromisoformat(str(payload.get("reviewed_at") or "").replace("Z", "+00:00"))
+        if reviewed_at.tzinfo is None:
+            errors.append("safety_review_timezone_missing")
+        elif (reviewed_at.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds() > 300:
+            errors.append("safety_review_timestamp_in_future")
+    except (TypeError, ValueError):
+        errors.append("safety_review_timestamp_invalid")
+    required = {"content_safety", "copyright_rights", "platform_rules", "ai_disclosure"}
+    if profile_id.startswith("tiktok_"):
+        required.add("music_license")
+    if profile_id in {"tiktok_ocenionona6", "youtube_memoryagent"}:
+        required.add("factual_accuracy")
+    checks = payload.get("checks")
+    if not isinstance(checks, dict):
+        errors.append("safety_review_checks_missing")
+    else:
+        for key in required:
+            if checks.get(key) is not True:
+                errors.append("safety_review_check_failed:" + key)
+    return sorted(set(errors))
 
 
 def _fact_check_report_from_json(raw: str) -> FactCheckReport:
@@ -111,6 +147,52 @@ class D1Client:
             raise D1Error("statement_failed")
         return first
 
+    def record_safety_review(
+        self,
+        content_id: str,
+        profile_id: str,
+        reviewer: str,
+        reviewed_at: str,
+        decision: str,
+        checks: dict[str, Any],
+        notes: str = "",
+    ) -> tuple[str, str]:
+        rows = self.query(
+            "SELECT profile_id, status FROM content_items WHERE id=?",
+            [content_id],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("content_item_not_found")
+        if rows[0].get("profile_id") != profile_id:
+            raise D1Error("content_profile_mismatch")
+        payload = {
+            "content_id": content_id,
+            "profile_id": profile_id,
+            "reviewer": str(reviewer),
+            "reviewed_at": str(reviewed_at),
+            "decision": str(decision),
+            "checks": checks if isinstance(checks, dict) else {},
+            "notes": str(notes)[:1000],
+        }
+        errors = _validate_safety_review_payload(payload, content_id, profile_id)
+        status = "passed" if not errors else "blocked"
+        reference = _safety_review_reference(payload)
+        result = self.query(
+            "UPDATE content_items SET safety_review_status=?, safety_review_reference=?, "
+            "safety_review_report_json=?, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND profile_id=? AND status IN ('idea','draft','ready')",
+            [
+                status,
+                reference,
+                json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                content_id,
+                profile_id,
+            ],
+        )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("safety_review_persist_rejected")
+        return status, reference
+
     def record_fact_check_report(self, content_id: str, profile_id: str, report: FactCheckReport) -> str:
         rows = self.query(
             "SELECT profile_id, status FROM content_items WHERE id=?",
@@ -180,6 +262,17 @@ class D1Client:
             raise D1Error("content_status_not_publishable")
         if item.get("safety_review_status") != "passed":
             raise D1Error("safety_review_not_passed")
+        try:
+            safety_report = json.loads(str(item.get("safety_review_report_json") or ""))
+        except json.JSONDecodeError:
+            raise D1Error("safety_review_report_invalid") from None
+        if not isinstance(safety_report, dict):
+            raise D1Error("safety_review_report_invalid")
+        safety_errors = _validate_safety_review_payload(safety_report, content_id, profile_id)
+        if safety_errors:
+            raise D1Error("safety_review_report_invalid:" + ",".join(safety_errors)[:80])
+        if _safety_review_reference(safety_report) != item.get("safety_review_reference"):
+            raise D1Error("safety_review_reference_mismatch")
         if not str(item.get("rights_reference") or "").strip():
             raise D1Error("rights_reference_missing")
         if item.get("ai_disclosure_required") == 1 and item.get("ai_disclosure_set") != 1:
