@@ -72,13 +72,13 @@ Wybrano Cloudflare Worker jako główny backend, ponieważ konto Cloudflare jest
 - **Worker:** `autored-idea-api` — wdrożony; obsługuje endpoint health i zdarzenie scheduled.
 - **Cron:** `0 7,8 * * *` UTC; kod wykonuje pracę wyłącznie o 09:00 Europe/Warsaw, z kontrolą zmiany czasu letniego/zimowego.
 - **D1:** `autored_idea_db`, jurysdykcja EU, region EEUR; tabele profili, treści, zadań publikacji, limitów, uruchomień i zdarzeń.
-- **Workers AI:** `@cf/zai-org/glm-4.7-flash`; test API zwrócił poprawny JSON przy `response_format=json_object`.
+- **Workers AI:** `@cf/meta/llama-3.1-8b-instruct`; test API zwrócił poprawny JSON przy `response_format=json_object`.
 - **KV i R2:** nieużywane. Nie przechowujemy dużych plików mediów w bazie ani w publicznym repozytorium.
 
 Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 - Workers Free: 100 000 żądań dziennie, 10 ms CPU na zwykłe wywołanie, 128 MB pamięci i maksymalnie 5 Cron Triggers na konto.
 - D1 Free: 5 mln odczytanych wierszy dziennie, 100 tys. zapisanych wierszy dziennie i 5 GB łącznej przestrzeni.
-- Workers AI: 10 000 neuronów dziennie bez opłat; po przekroczeniu limitu na planie Free kolejne wywołania są odrzucane, a nie automatycznie płatne.
+- Workers AI: 10 000 neuronów dziennie bez opłat; po przekroczeniu limitu na planie Free kolejne wywołania są odrzucane, a nie automatycznie płatne. Model tekstowy wybrano z listy obsługującej JSON Mode.
 - Limity mają być mierzone; po osiągnięciu limitu system przechodzi w bezpieczny stan, nie obchodzi ograniczeń.
 
 Źródła limitów:
