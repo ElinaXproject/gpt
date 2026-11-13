@@ -235,3 +235,14 @@ Wyjątek: jeśli narzędzie ma istotnie większą funkcjonalność lub limit, mo
 ## 10. Następny krok
 
 Dokończyć A02–A04: sprawdzić pozostałe plany, połączenia i workflow; potem przygotować benchmark kreatorów. Do tego czasu nie zmieniać działającego generatora, harmonogramów ani publikatorów.
+
+
+## 11. Automatyzacje cykliczne — kontrola 2026-11-13
+
+| Zadanie | Stan | Najbliższy termin | Wniosek |
+|---|---|---|---|
+| Memory Agent – monitoring i produkcja YouTube | ENABLED | 2026-11-14 08:00 Europe/Warsaw | Brak zarejestrowanego wcześniejszego uruchomienia w odczycie; prompt przewiduje research i wykorzystanie vidIQ. |
+| Codzienna obsługa TikTok i audyt | ENABLED | 2026-11-13 15:45 Europe/Warsaw | Osobna automatyzacja ChatGPT; porównać z Activepieces, aby uniknąć podwójnego tworzenia materiałów. |
+| Cotygodniowy audyt środowiska pracy | DISABLED | 2026-11-19 09:00 Europe/Warsaw | Istniejący audyt tygodniowy jest wyłączony. Nie aktywować bez osobnej zgody. |
+| Codzienna kontrola statystyk TikToka | DISABLED | 2026-11-14 10:00 Europe/Warsaw | Do sprawdzenia, czy zadanie nie dubluje Metricool lub innych raportów. |
+
