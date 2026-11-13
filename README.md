@@ -5,15 +5,16 @@ Central repository for the GPT Workbench project.
 ## Repository structure
 
 - `docs/` — operating protocol, integration status, quick start, quality controls and current state.
-- `docs/AUTORED_IDEA_*` — architecture, staged delivery plan, security/DR, test plan and verified baseline for AUTORED IDEA.
+- `docs/AUTORED_IDEA_*` — architecture, staged delivery plan, security/DR, test plan, decisions and verified baseline for AUTORED IDEA.
+- `autored/` — provider-neutral deterministic workflow core.
 - `templates/` — reusable project, state, task, decision and error templates.
-- `tests/` — deterministic documentation and safety regression tests.
+- `tests/` — deterministic unit, documentation and safety regression tests.
 
 ## Source of truth by system
 
 - **Notion:** operational knowledge, decisions, pages and tasks.
 - **ChatGPT Library:** working file archive and source copies under `/Assistant_Workbench/`.
-- **GitHub:** version-controlled documentation and future code.
+- **GitHub:** version-controlled documentation, code and CI.
 - **Dropbox:** optional secondary file destination; upload has not yet been verified.
 
 ## Operating rules
@@ -29,11 +30,14 @@ Central repository for the GPT Workbench project.
 
 ### AUTORED IDEA
 
-1. [Project architecture](docs/AUTORED_IDEA_ARCHITECTURE_PL.md)
-2. [Execution roadmap](docs/AUTORED_IDEA_EXECUTION_PLAN_PL.md)
-3. [Security and Disaster Recovery](docs/AUTORED_IDEA_SECURITY_DR_PL.md)
-4. [Test plan and acceptance criteria](docs/AUTORED_IDEA_TEST_PLAN_PL.md)
-5. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
+1. [Project state](docs/AUTORED_IDEA_STATE_PL.md)
+2. [Project architecture](docs/AUTORED_IDEA_ARCHITECTURE_PL.md)
+3. [Execution roadmap](docs/AUTORED_IDEA_EXECUTION_PLAN_PL.md)
+4. [Architecture decisions](docs/AUTORED_IDEA_DECISIONS_PL.md)
+5. [Security and Disaster Recovery](docs/AUTORED_IDEA_SECURITY_DR_PL.md)
+6. [Test plan and acceptance criteria](docs/AUTORED_IDEA_TEST_PLAN_PL.md)
+7. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
+8. [Core package](autored/README.md)
 
 ### GPT Workbench
 
