@@ -2,7 +2,7 @@ import json
 import unittest
 from datetime import datetime, timezone
 
-from autored.d1_client import D1Client, D1Error
+from autored.d1_client import D1Client, D1Error, _safety_review_reference
 from autored.factcheck import Claim, Evidence, FactCheckReport
 
 
@@ -73,6 +73,24 @@ class D1ClientTests(unittest.TestCase):
             } for item in report.evidence],
         }, ensure_ascii=False)
 
+    def safety_payload(self, content_id, profile_id, checks=None):
+        required = {"content_safety": True, "copyright_rights": True, "platform_rules": True, "ai_disclosure": True}
+        if profile_id.startswith("tiktok_"):
+            required["music_license"] = True
+        if profile_id in {"tiktok_ocenionona6", "youtube_memoryagent"}:
+            required["factual_accuracy"] = True
+        if checks is not None:
+            required.update(checks)
+        return {
+            "content_id": content_id,
+            "profile_id": profile_id,
+            "reviewer": "editor:verified-review",
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "decision": "approved",
+            "checks": required,
+            "notes": "Reviewed before scheduling",
+        }
+
     def publishable_content(self, **overrides):
         row = {
             "id": "content-1",
@@ -91,6 +109,9 @@ class D1ClientTests(unittest.TestCase):
             "music_license_reference": "original-track-license-001",
         }
         row.update(overrides)
+        safety_report = self.safety_payload(row["id"], row["profile_id"])
+        row["safety_review_report_json"] = json.dumps(safety_report, ensure_ascii=False, sort_keys=True)
+        row["safety_review_reference"] = _safety_review_reference(safety_report)
         return row
 
     def test_record_scheduled_creates_job_and_updates_content(self):
@@ -170,6 +191,40 @@ class D1ClientTests(unittest.TestCase):
                 idempotency_key="schedule-key", provider_post_group_id="group-1"
             )
         self.assertEqual(1, len(requests))
+
+    def test_valid_safety_review_is_persisted(self):
+        client, requests = self.client([
+            self.response([{"profile_id":"tiktok_pieknemedia","status":"draft"}], 0),
+            self.response([], 1),
+        ])
+        status, reference = client.record_safety_review(
+            "content-1", "tiktok_pieknemedia", "editor:verified-review",
+            datetime.now(timezone.utc).isoformat(), "approved",
+            {"content_safety": True, "copyright_rights": True, "platform_rules": True,
+             "ai_disclosure": True, "music_license": True},
+            "All checks passed"
+        )
+        self.assertEqual("passed", status)
+        self.assertTrue(reference.startswith("sr_"))
+        self.assertEqual(2, len(requests))
+        update = json.loads(requests[1].data.decode("utf-8"))
+        self.assertIn("safety_review_report_json", update["sql"])
+
+    def test_failed_safety_check_is_persisted_as_blocked(self):
+        client, requests = self.client([
+            self.response([{"profile_id":"tiktok_pieknemedia","status":"draft"}], 0),
+            self.response([], 1),
+        ])
+        status, _reference = client.record_safety_review(
+            "content-1", "tiktok_pieknemedia", "editor:verified-review",
+            datetime.now(timezone.utc).isoformat(), "approved",
+            {"content_safety": False, "copyright_rights": True, "platform_rules": True,
+             "ai_disclosure": True, "music_license": True}
+        )
+        self.assertEqual("blocked", status)
+        self.assertEqual(2, len(requests))
+        update = json.loads(requests[1].data.decode("utf-8"))
+        self.assertEqual("blocked", update["params"][0])
 
     def test_fact_check_report_requires_human_reviewer(self):
         client, requests = self.client([
