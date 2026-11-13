@@ -91,7 +91,7 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 
 - **GitHub Actions:** testy regresyjne, kontrola sekretów, walidacja składni Workera i późniejszy pipeline renderowania.
 - **FFmpeg:** renderer działa na runnerze GitHub Actions; nie uruchamiać FFmpeg w Cloudflare Worker (limity CPU/pamięci).
-- Renderowane pliki są przekazywane jako prywatne artefakty GitHub Actions do zadań publikacyjnych; pobieranie ogranicza się do numerycznego ID artefaktu i waliduje ZIP, ścieżki, liczbę plików i rozmiary. Nie archiwizować mediów w publicznym repozytorium.
+- Repozytorium jest publiczne, więc GitHub Actions artifacts nie są prywatnym storage. Przed uploadem cały pakiet (manifest + media) musi być zaszyfrowany age do pojedynczego `media_bundle.zip.age`; w runnerze odszyfrowanie następuje dopiero po pobraniu i tylko przy obecności sekretu `AUTORED_ARTIFACT_AGE_IDENTITY`. Downloader odrzuca jawne manifesty/MP4, waliduje ZIP, ścieżki, liczbę plików i rozmiary, a pliki tymczasowe usuwa. Skrypty: `scripts/create_media_artifact.py`, `scripts/download_media_artifact.py`.
 - Generowanie obrazów/wideo wymaga osobnej weryfikacji darmowych limitów i licencji; nie zakładać, że darmowe AI API zapewni pełną produkcję wizualną.
 
 ### Integracje publikacyjne
