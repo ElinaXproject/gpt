@@ -5,7 +5,9 @@ Central repository for the GPT Workbench project.
 ## Repository structure
 
 - `docs/` — operating protocol, integration status, quick start, quality controls and current state.
+- `docs/AUTORED_IDEA_*` — architecture, staged delivery plan, security/DR, test plan and verified baseline for AUTORED IDEA.
 - `templates/` — reusable project, state, task, decision and error templates.
+- `tests/` — deterministic documentation and safety regression tests.
 
 ## Source of truth by system
 
@@ -20,8 +22,20 @@ Central repository for the GPT Workbench project.
 - Verify writes by reading files back.
 - Never commit passwords, API keys, access tokens, or personal data.
 - Do not claim cross-service synchronization unless each transfer is confirmed.
+- Keep AUTORED IDEA's design, implementation, tests and operational state documented together.
+- Never mark an integration as production-ready without an end-to-end test and independent confirmation.
 
 ## Start here
+
+### AUTORED IDEA
+
+1. [Project architecture](docs/AUTORED_IDEA_ARCHITECTURE_PL.md)
+2. [Execution roadmap](docs/AUTORED_IDEA_EXECUTION_PLAN_PL.md)
+3. [Security and Disaster Recovery](docs/AUTORED_IDEA_SECURITY_DR_PL.md)
+4. [Test plan and acceptance criteria](docs/AUTORED_IDEA_TEST_PLAN_PL.md)
+5. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
+
+### GPT Workbench
 
 1. Read [quick start](docs/QUICK_START_PL.md).
 2. Read [current state](docs/WORKBENCH_STATE.md).
