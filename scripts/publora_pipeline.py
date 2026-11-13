@@ -10,6 +10,7 @@ import argparse
 import json
 import mimetypes
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,51 @@ PROFILES = {
     "tiktok_ocenionona6": {"platform": "tiktok", "handle": "@ocenionona6"},
     "youtube_memoryagent": {"platform": "youtube", "handle": "@MemoryAgent-r3c"},
 }
+
+
+def normalize_tiktok_photo(source_path: Path) -> Path:
+    """Return a temporary JPEG within TikTok's 1080p photo limit.
+
+    The original asset is never modified. EXIF orientation is applied and
+    transparent pixels are composited on white before JPEG encoding.
+    """
+    try:
+        from PIL import Image, ImageOps, UnidentifiedImageError
+    except ImportError:
+        raise PubloraError("tiktok_photo_normalizer_unavailable") from None
+
+    try:
+        with Image.open(source_path) as opened:
+            image = ImageOps.exif_transpose(opened)
+            image.load()
+            if image.width < 1 or image.height < 1:
+                raise PubloraError("tiktok_photo_dimensions_invalid")
+            image.thumbnail((1080, 1080), Image.Resampling.LANCZOS)
+            if image.mode in ("RGBA", "LA") or "transparency" in image.info:
+                rgba = image.convert("RGBA")
+                background = Image.new("RGB", rgba.size, (255, 255, 255))
+                background.paste(rgba, mask=rgba.getchannel("A"))
+                image = background
+            else:
+                image = image.convert("RGB")
+
+            handle = tempfile.NamedTemporaryFile(
+                prefix="autored-tiktok-", suffix=".jpg", delete=False
+            )
+            output_path = Path(handle.name)
+            handle.close()
+            image.save(
+                output_path, format="JPEG", quality=92,
+                optimize=True, progressive=False
+            )
+            if output_path.stat().st_size > 20 * 1024 * 1024:
+                output_path.unlink(missing_ok=True)
+                raise PubloraError("tiktok_photo_exceeds_20mb")
+            return output_path
+    except PubloraError:
+        raise
+    except (OSError, ValueError, UnidentifiedImageError):
+        raise PubloraError("tiktok_photo_invalid_image") from None
 
 
 def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -135,7 +181,16 @@ def process_manifest(client: Any, item: dict[str, Any], job_store: Any | None = 
             platform_settings=validated["platform_settings"],
         )
 
-    client.upload_media(post_group_id, validated["media_path"])
+    upload_path = validated["media_path"]
+    normalized_path: Path | None = None
+    if profile["platform"] == "tiktok" and item.get("media_mime", "").startswith("image/"):
+        normalized_path = normalize_tiktok_photo(upload_path)
+        upload_path = normalized_path
+    try:
+        client.upload_media(post_group_id, upload_path)
+    finally:
+        if normalized_path is not None:
+            normalized_path.unlink(missing_ok=True)
     schedule_key = stable_idempotency_key(item["content_id"], item["profile_id"], "schedule")
     try:
         scheduled = client.schedule_draft(
