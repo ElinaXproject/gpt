@@ -6,6 +6,8 @@ on:
     paths:
       - "scripts/render_vertical_video.py"
       - "scripts/smoke_input.json"
+      - "scripts/smoke_input_humor.json"
+      - "scripts/smoke_input_education.json"
       - "requirements-render.txt"
       - ".github/workflows/render-smoke.yml"
   workflow_dispatch:
@@ -43,20 +45,21 @@ jobs:
       - name: Verify voice license card
         run: |
           find voices -name MODEL_CARD -print -exec cat {} \;
-      - name: Render smoke video
+      - name: Render all profile themes
         run: |
-          python scripts/render_vertical_video.py \
-            --input scripts/smoke_input.json \
-            --output output/autored-smoke.mp4 \
-            --voice pl_PL-darkman-medium \
-            --voice-dir voices
-      - name: Validate output with FFprobe
+          python scripts/render_vertical_video.py --input scripts/smoke_input.json --output output/autored-tech.mp4 --voice pl_PL-darkman-medium --voice-dir voices
+          python scripts/render_vertical_video.py --input scripts/smoke_input_humor.json --output output/autored-humor.mp4 --voice pl_PL-darkman-medium --voice-dir voices
+          python scripts/render_vertical_video.py --input scripts/smoke_input_education.json --output output/autored-education.mp4 --voice pl_PL-darkman-medium --voice-dir voices
+      - name: Validate all outputs with FFprobe
         run: |
-          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height,sample_rate -of json output/autored-smoke.mp4
-          test -s output/autored-smoke.mp4
+          for file in output/autored-*.mp4; do
+            echo "Checking $file"
+            ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height,sample_rate,channels -of json "$file"
+            test -s "$file"
+          done
       - name: Upload smoke artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: autored-render-smoke
-          path: output/autored-smoke.mp4
+          path: output/autored-*.mp4
           retention-days: 7
