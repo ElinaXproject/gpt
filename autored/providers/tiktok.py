@@ -151,6 +151,10 @@ class TikTokDirectPublisher:
         title: str,
         privacy_level: str = "PUBLIC_TO_EVERYONE",
         duration_seconds: int,
+        scheduled_at,
+        music_embedded: bool,
+        music_license_reference: str,
+        ai_generated: bool = True,
         disable_comment: bool = False,
         disable_duet: bool = False,
         disable_stitch: bool = False,
@@ -165,6 +169,12 @@ class TikTokDirectPublisher:
             raise TikTokError("invalid_caption")
         if not isinstance(duration_seconds, int) or duration_seconds < 1:
             raise TikTokError("invalid_duration")
+        if not hasattr(scheduled_at, "tzinfo") or scheduled_at.tzinfo is None:
+            raise TikTokError("scheduled_time_must_be_timezone_aware")
+        if scheduled_at.timestamp() > __import__("time").time():
+            raise TikTokError("publication_not_due")
+        if music_embedded is not True or not isinstance(music_license_reference, str) or not music_license_reference.strip():
+            raise TikTokError("licensed_embedded_music_required")
 
         access_token = self.refresh_access_token()
         creator = self.get_creator_info(access_token)
@@ -179,6 +189,7 @@ class TikTokDirectPublisher:
                 "disable_comment": disable_comment,
                 "disable_duet": disable_duet,
                 "disable_stitch": disable_stitch,
+                "is_aigc": ai_generated,
             },
             "source_info": {
                 "source": "FILE_UPLOAD",
