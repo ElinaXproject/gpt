@@ -87,6 +87,20 @@ class ResearchDigestTests(unittest.TestCase):
         self.assertEqual(0, result["feed_summary"]["total"])
         self.assertEqual("no_recent_source_match", result["profiles"][0]["status"])
 
+
+    def test_humor_profile_does_not_require_news_research(self):
+        result = research_digest.build_digest(
+            [{
+                "profile_id": "tiktok_pieknemedia",
+                "theme": "humor",
+                "topic": "Humor sytuacyjny",
+                "research_query": "treść autorska"
+            }],
+            feeds=[],
+            now=self.now,
+        )
+        self.assertEqual("research_not_required", result["profiles"][0]["status"])
+
     def test_naive_now_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "now_must_be_timezone_aware"):
             research_digest.build_digest([], feeds=[], now=datetime(2026, 11, 13, 12))
