@@ -29,6 +29,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-noto-core
+      - name: Verify Unicode font coverage
+        run: |
+          fc-match "Noto Sans"
+          test -f /usr/share/fonts/truetype/noto/NotoSans-Bold.ttf
+          fc-query --format='%{charset}\n' /usr/share/fonts/truetype/noto/NotoSans-Bold.ttf | head -c 500
       - name: Install pinned TTS dependencies
         run: |
           python -m pip install --disable-pip-version-check -r requirements-render.txt
