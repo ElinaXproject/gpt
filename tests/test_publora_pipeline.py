@@ -4,6 +4,8 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from PIL import Image
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -15,6 +17,7 @@ from publora_pipeline import process_manifest, validate_manifest
 class FakeClient:
     def __init__(self, schedule_error=None, post_status="scheduled"):
         self.calls = []
+        self.upload_image_info = None
         self.schedule_error = schedule_error
         self.post_status = post_status
         self.scheduled_time = None
@@ -33,6 +36,9 @@ class FakeClient:
 
     def upload_media(self, post_group_id, media_path):
         self.calls.append(("upload", post_group_id, media_path))
+        if media_path.suffix.lower() in {".jpg", ".jpeg"}:
+            with Image.open(media_path) as image:
+                self.upload_image_info = (image.format, image.size)
         return {"mediaId": "media-1"}
 
     def schedule_draft(self, post_group_id, scheduled_time, *, idempotency_key):
@@ -99,6 +105,24 @@ class PubloraPipelineTests(unittest.TestCase):
         item.pop("music_embedded")
         _, validated = validate_manifest(item)
         self.assertTrue(validated["platform_settings"]["tiktok"]["autoAddMusic"])
+
+    def test_tiktok_photo_is_normalized_to_jpeg_before_upload(self):
+        photo = Path(self.temp.name) / "oversized-photo.png"
+        Image.new("RGBA", (2400, 1800), (20, 40, 60, 120)).save(photo)
+        item = dict(
+            self.base,
+            content_id="photo-normalization-001",
+            media_path=str(photo),
+            media_mime="image/png",
+        )
+        item.pop("music_license_reference")
+        item.pop("music_embedded")
+        client = FakeClient()
+        result = process_manifest(client, item)
+        self.assertEqual("scheduled", result["status"])
+        self.assertEqual("JPEG", client.upload_image_info[0])
+        self.assertLessEqual(max(client.upload_image_info[1]), 1080)
+        self.assertEqual((2400, 1800), Image.open(photo).size)
 
     def test_ai_disclosure_gate_blocks_missing_disclosure(self):
         item = dict(self.base, ai_disclosure_set=False)
