@@ -179,7 +179,7 @@ class YouTubeUploader:
                     headers = getattr(response, "headers", {})
                 if status == 308:
                     range_header = headers.get("Range") if headers else None
-                    match = re.fullmatch(r"bytes=0-(\\d+)", str(range_header or ""))
+                    match = re.fullmatch(r"bytes=0-(\d+)", str(range_header or ""))
                     next_offset = int(match.group(1)) + 1 if match else 0
                     if next_offset <= offset:
                         no_progress_attempts += 1
