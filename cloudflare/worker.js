@@ -18,7 +18,7 @@ const TARGETS = [
   {
     id: "youtube_memoryagent",
     platform: "youtube",
-    handle: "@MemoryAgent-r3",
+    handle: "@MemoryAgent-r3c",
     theme: "tech",
     editorial: "Kanał o najnowszej technologii i AI. Każdy temat musi przejść osobny research wiarygodnych źródeł z ostatnich 24–72 godzin; na tym etapie przygotuj wyłącznie propozycję tematu i zapytanie badawcze, bez udawania, że news został zweryfikowany."
   }
