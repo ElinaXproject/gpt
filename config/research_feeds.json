@@ -1,0 +1,84 @@
+[
+  {
+    "id": "bbc_technology",
+    "name": "BBC Technology",
+    "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "category": "technology",
+    "allowed_domains": [
+      "bbc.com",
+      "bbc.co.uk"
+    ]
+  },
+  {
+    "id": "the_verge",
+    "name": "The Verge",
+    "url": "https://www.theverge.com/rss/index.xml",
+    "category": "technology",
+    "allowed_domains": [
+      "theverge.com"
+    ]
+  },
+  {
+    "id": "ars_technica",
+    "name": "Ars Technica",
+    "url": "https://feeds.arstechnica.com/arstechnica/index",
+    "category": "technology",
+    "allowed_domains": [
+      "arstechnica.com"
+    ]
+  },
+  {
+    "id": "mit_technology_review",
+    "name": "MIT Technology Review",
+    "url": "https://www.technologyreview.com/feed/",
+    "category": "technology",
+    "allowed_domains": [
+      "technologyreview.com"
+    ]
+  },
+  {
+    "id": "nature_news",
+    "name": "Nature",
+    "url": "https://www.nature.com/nature.rss",
+    "category": "science",
+    "allowed_domains": [
+      "nature.com"
+    ]
+  },
+  {
+    "id": "sciencedaily_ai",
+    "name": "ScienceDaily AI",
+    "url": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
+    "category": "technology",
+    "allowed_domains": [
+      "sciencedaily.com"
+    ]
+  },
+  {
+    "id": "sciencedaily_psychology",
+    "name": "ScienceDaily Psychology",
+    "url": "https://www.sciencedaily.com/rss/mind_brain/psychology.xml",
+    "category": "science",
+    "allowed_domains": [
+      "sciencedaily.com"
+    ]
+  },
+  {
+    "id": "openai_news",
+    "name": "OpenAI News",
+    "url": "https://openai.com/news/rss.xml",
+    "category": "technology",
+    "allowed_domains": [
+      "openai.com"
+    ]
+  },
+  {
+    "id": "techcrunch",
+    "name": "TechCrunch",
+    "url": "https://techcrunch.com/feed/",
+    "category": "technology",
+    "allowed_domains": [
+      "techcrunch.com"
+    ]
+  }
+]
