@@ -32,8 +32,8 @@ class MediaValidationTests(unittest.TestCase):
 
     def test_landscape_video_is_blocked(self):
         invalid = json.loads(json.dumps(self.probe))
-        invalid["streams"][0]["width"] = 1920
-        invalid["streams"][0]["height"] = 1080
+        invalid["streams"][0]["width"] = 1600
+        invalid["streams"][0]["height"] = 1280
         with self.assertRaisesRegex(MediaValidationError, "vertical_aspect_ratio_required"):
             validate_tiktok_video(self.path, self.runner(invalid))
 
