@@ -171,7 +171,7 @@ def render(args: argparse.Namespace) -> dict:
     command += [
         "-t", f"{duration:.3f}", "-r", str(FPS),
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
         "-movflags", "+faststart", str(args.output)
     ]
     run(command)
