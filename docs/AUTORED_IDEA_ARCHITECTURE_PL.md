@@ -113,6 +113,12 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 
 Źródła: https://developers.tiktok.com/docs/en/content-posting-api-get-started ; https://developers.tiktok.com/docs/en/content-posting-api-reference-direct-post ; https://developers.tiktok.com/docs/en/content-sharing-guidelines
 
+### TikTok — media transfer limits (zweryfikowane w oficjalnym przewodniku 2026-08-04)
+- Maksymalny rozmiar pliku wideo: 4 GB; maksymalny czas przesyłany przez API: 10 minut. Implementacja odrzuca pliki większe niż 4 GB i czasy poza zakresem API.
+- Plik poniżej 5 MB jest wysyłany jako jeden transfer; do 64 MB może być wysłany w jednym kawałku; powyżej 64 MB wymagane są bloki. Bloki muszą mieć 5–64 MB, a ostatni może zawierać do 128 MB połączonego końcowego fragmentu. `total_chunk_count` jest wyliczany zgodnie z zasadą floor opisaną przez TikTok, a fragmenty są wysyłane sekwencyjnie.
+- Host transferowy może być `open-upload.tiktokapis.com` albo regionalny `upload.<region>.tiktokapis.com`; klient akceptuje tylko te wzorce HTTPS i odrzuca obce hosty, niestandardowe porty, userinfo oraz fragmenty URL.
+- Źródło: https://developers.tiktok.com/docs/en/content-posting-api-media-transfer-guide (sekcje Chunk restrictions, Examples, Video restrictions; aktualizacja 2026-08-04).
+
 ### YouTube — Data API
 - Upload przez `videos.insert` wymaga OAuth z zakresem `youtube.upload` lub szerszym, odpowiednim zakresem.
 - Domyślny limit API obejmuje 100 wywołań `videos.insert` dziennie w osobnym bucket; każde wywołanie kosztuje 1 jednostkę tego bucketu. Pozostałe endpointy mają wspólny limit 10 000 jednostek/dzień. Reset o północy czasu Pacific.
