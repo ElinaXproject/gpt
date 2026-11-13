@@ -193,6 +193,7 @@ test("ideas endpoint returns only completed public-safe daily idea fields", asyn
   const fixture = createEnv({
     ideaRows: [
       {
+        id: "content-001",
         profile_id: "youtube_memoryagent",
         topic: "Nowości AI",
         title: "Co zmienia się w AI?",
@@ -212,6 +213,7 @@ test("ideas endpoint returns only completed public-safe daily idea fields", asyn
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.items.length, 1);
+  assert.equal(body.items[0].content_id, "content-001");
   assert.equal(body.items[0].profile_id, "youtube_memoryagent");
   assert.equal(body.items[0].research_query, "najnowsze wiadomości AI");
   assert.equal("rights_reference" in body.items[0], false);
