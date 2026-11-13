@@ -5,8 +5,10 @@ Central repository for the GPT Workbench project.
 ## Repository structure
 
 - `docs/` — operating protocol, integration status, quick start, quality controls and current state.
-- `docs/AUTORED_IDEA_*` — architecture, staged delivery plan, security/DR, test plan, decisions and verified baseline for AUTORED IDEA.
+- `docs/AUTORED_IDEA_*` — architecture, roadmap, security/DR, tests, decisions, audits, deployment log and project state.
 - `autored/` — provider-neutral deterministic workflow core.
+- `cloudflare/` — Worker runtime and versioned D1 migrations.
+- `wrangler.toml` — Cloudflare Worker, D1, AI and Cron configuration.
 - `templates/` — reusable project, state, task, decision and error templates.
 - `tests/` — deterministic unit, documentation and safety regression tests.
 
@@ -15,6 +17,7 @@ Central repository for the GPT Workbench project.
 - **Notion:** operational knowledge, decisions, pages and tasks.
 - **ChatGPT Library:** working file archive and source copies under `/Assistant_Workbench/`.
 - **GitHub:** version-controlled documentation, code and CI.
+- **Cloudflare:** deployed Worker and D1 operational backend.
 - **Dropbox:** optional secondary file destination; upload has not yet been verified.
 
 ## Operating rules
@@ -36,8 +39,9 @@ Central repository for the GPT Workbench project.
 4. [Architecture decisions](docs/AUTORED_IDEA_DECISIONS_PL.md)
 5. [Security and Disaster Recovery](docs/AUTORED_IDEA_SECURITY_DR_PL.md)
 6. [Test plan and acceptance criteria](docs/AUTORED_IDEA_TEST_PLAN_PL.md)
-7. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
-8. [Core package](autored/README.md)
+7. [Deployment log](docs/AUTORED_IDEA_DEPLOYMENT_2026-11-13_PL.md)
+8. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
+9. [Core package](autored/README.md)
 
 ### GPT Workbench
 
