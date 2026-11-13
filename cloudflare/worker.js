@@ -142,6 +142,7 @@ async function runDaily(env, scheduledAt = new Date()) {
         id,
         JSON.stringify({
           localDate,
+          theme: item.theme,
           format: item.format,
           research_query: item.research_query,
           editorial_note: item.editorial_note,
