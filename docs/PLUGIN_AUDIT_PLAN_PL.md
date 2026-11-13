@@ -326,4 +326,4 @@ Kontrola wykonana ponownie w trybie read-only. Nie zmieniano żadnego workflow a
 ### Dziennik zmian
 | Data i czas (Europe/Warsaw) | Zdarzenie | Dokumentacja / dowód | Status |
 |---|---|---|---|
-| 2026-11-13 15:20 | Zgłoszono brak bieżącej aktualizacji dokumentacji po zmianach nieplanowanych. Dodano obowiązkowy protokół aktualizacji zdarzeniowej i weryfikacji zapisu. | Sekcja 13; commit tej aktualizacji wymaga ponownego odczytu weryfikacyjnego. | IN PROGRESS |
+| 2026-11-13 15:20 | Zgłoszono brak bieżącej aktualizacji dokumentacji po zmianach nieplanowanych. Dodano obowiązkowy protokół aktualizacji zdarzeniowej i weryfikacji zapisu. | Sekcja 13; commit `176b49124c2d63b8b1fd0186768c83003a4f1d82`; ponowny odczyt potwierdził zapis sekcji 13. | VERIFIED |
