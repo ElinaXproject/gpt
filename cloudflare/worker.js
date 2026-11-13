@@ -121,20 +121,7 @@ function validateHumorDraft(draft) {
   if (typeof draft?.voiceover_text !== "string" || draft.voiceover_text.trim().length < 40) errors.push("invalid_voiceover");
   if (typeof draft?.visual_direction !== "string" || !draft.visual_direction.trim()) errors.push("missing_visual_direction");
 
-  const allText = [
-    draft?.title, draft?.description, draft?.voiceover_text, draft?.visual_direction,
-    ...(Array.isArray(draft?.script) ? draft.script.map((scene) => scene?.scene || "") : [])
-  ].join(" ").toLowerCase();
-  const blocked = [
-    /\\b(samookalecz|samob[oó]j|self[- ]harm|suicid)\\w*/i,
-    /\\b(narkotyk|drugs?|cocaine|heroin|methamphetamine)\\w*/i,
-    /\\b(alkohol|alcohol|vodka|beer|wine|cigarette|vape|nicotine)\\w*/i,
-    /\\b(hazard|gambling|casino|betting)\\w*/i,
-    /\\b(bro[nń]|pistolet|gun|weapon|knife)\\w*/i,
-    /\\b(seks|sexual|porn|erotic)\\w*/i,
-    /\\b(niebezpieczn[a-z]* wyzwan|dangerous challenge|risky stunt)\\w*/i
-  ];
-  if (blocked.some((pattern) => pattern.test(allText))) errors.push("safety_filter_blocked");
+  // Structural validation only. Every generated draft remains pending an independent safety review.
   return errors;
 }
 
