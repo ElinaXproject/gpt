@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 from autored.d1_client import D1Client, D1Error
+from autored.providers.tiktok import TikTokDirectPublisher
+from autored.token_vault import D1EncryptedTokenStore
 from download_media_artifact import ArtifactError, download_media_artifact
-from tiktok_publish import load_manifest as load_tiktok_manifest, run as run_tiktok
+from tiktok_publish import PROFILES, load_manifest as load_tiktok_manifest, run as run_tiktok
 from youtube_publish import load_manifest as load_youtube_manifest, run as run_youtube
 
 
@@ -45,6 +47,43 @@ def _provider_ready(provider: str, env: dict[str, str]) -> bool:
             "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"
         ))
     return False
+
+
+def _check_tiktok_status(job: dict[str, Any], d1: D1Client) -> str:
+    profile_id = str(job.get("profile_id") or "")
+    username = PROFILES.get(profile_id)
+    if not username:
+        raise ValueError("unknown_tiktok_profile")
+    publisher = TikTokDirectPublisher(
+        profile_id=profile_id,
+        expected_username=username,
+        token_store=D1EncryptedTokenStore(d1),
+    )
+    return publisher.get_publish_status(str(job.get("platform_post_id") or ""))
+
+
+def _reconcile_pending_tiktok(
+    job: dict[str, Any],
+    *,
+    d1: D1Client,
+    env: dict[str, str],
+    status_checker: Callable[[dict[str, Any], D1Client], str],
+) -> dict[str, Any]:
+    job_id = str(job.get("id") or "")
+    if not _provider_ready("tiktok_direct", env):
+        return {"job_id": job_id, "status": "skipped", "reason": "provider_credentials_not_configured"}
+    try:
+        provider_status = status_checker(job, d1)
+        if provider_status == "PUBLISH_COMPLETE":
+            d1.mark_job_published(job_id, str(job["platform_post_id"]))
+            return {"job_id": job_id, "status": "published"}
+        if provider_status == "FAILED":
+            d1.mark_job_failed(job_id, "tiktok_publish_failed", blocked=False)
+            return {"job_id": job_id, "status": "failed"}
+        return {"job_id": job_id, "status": "pending", "provider_status": provider_status}
+    except Exception as exc:
+        code = getattr(exc, "code", type(exc).__name__)
+        return {"job_id": job_id, "status": "error", "reason": str(code)[:120]}
 
 
 def _dispatch_one(
@@ -102,10 +141,12 @@ def run_dispatch(
     downloader: Callable[..., tuple[Path, Path]] = download_media_artifact,
     tiktok_runner: Callable[[Path, Path], dict[str, Any]] = run_tiktok,
     youtube_runner: Callable[[Path, Path], dict[str, Any]] = run_youtube,
+    tiktok_status_checker: Callable[[dict[str, Any], D1Client], str] = _check_tiktok_status,
 ) -> dict[str, Any]:
     client = d1 or D1Client()
     environment = dict(os.environ if env is None else env)
     now = now_utc or datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    pending_tiktok_jobs = client.get_pending_tiktok_jobs(limit=limit)
     tiktok_jobs = client.get_due_jobs(now, limit=limit)
     youtube_jobs = client.get_youtube_jobs_to_schedule(now, horizon_hours=168, limit=limit)
     candidates = [
@@ -113,7 +154,19 @@ def run_dispatch(
         *[dict(job, provider="youtube_direct") for job in youtube_jobs],
     ]
     if dry_run:
-        return {"status": "dry_run", "candidate_count": len(candidates), "jobs": candidates}
+        return {
+            "status": "dry_run",
+            "candidate_count": len(candidates),
+            "pending_tiktok_count": len(pending_tiktok_jobs),
+            "jobs": candidates,
+            "pending_tiktok_jobs": pending_tiktok_jobs,
+        }
+    reconciliation = [
+        _reconcile_pending_tiktok(
+            job, d1=client, env=environment, status_checker=tiktok_status_checker
+        )
+        for job in pending_tiktok_jobs
+    ]
     results = [
         _dispatch_one(
             job, d1=client, env=environment, downloader=downloader,
@@ -124,11 +177,15 @@ def run_dispatch(
     return {
         "status": "completed",
         "candidate_count": len(candidates),
+        "reconciled": sum(item["status"] in {"published", "failed"} for item in reconciliation),
+        "pending": sum(item["status"] == "pending" for item in reconciliation),
+        "reconciliation_errors": sum(item["status"] == "error" for item in reconciliation),
         "processed": sum(item["status"] == "processed" for item in results),
         "blocked": sum(item["status"] == "blocked" for item in results),
         "skipped": sum(item["status"] == "skipped" for item in results),
         "errors": sum(item["status"] == "error" for item in results),
         "jobs": results,
+        "reconciliation": reconciliation,
     }
 
 
