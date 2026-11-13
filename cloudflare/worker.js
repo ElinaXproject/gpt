@@ -195,7 +195,8 @@ export default {
     }
     if (request.method === "GET" && url.pathname === "/ideas") {
       const localDate = url.searchParams.get("date") || "";
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate) || Number.isNaN(Date.parse(localDate + "T00:00:00Z"))) {
+      const parsedDate = new Date(localDate + "T00:00:00Z");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate) || Number.isNaN(parsedDate.valueOf()) || parsedDate.toISOString().slice(0, 10) !== localDate) {
         return Response.json({ error: "invalid_date" }, { status: 400, headers: { "Cache-Control": "no-store" } });
       }
       try {
