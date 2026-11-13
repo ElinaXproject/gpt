@@ -1,7 +1,9 @@
 import json
 import unittest
+from datetime import datetime, timezone
 
 from autored.d1_client import D1Client, D1Error
+from autored.factcheck import Claim, Evidence, FactCheckReport
 
 
 class FakeResponse:
@@ -41,6 +43,36 @@ class D1ClientTests(unittest.TestCase):
             }]
         }
 
+    def valid_youtube_report(self, reviewer_type="human"):
+        now = datetime.now(timezone.utc).isoformat()
+        return FactCheckReport(
+            profile_key="youtube_memoryagent",
+            reviewed_at=now,
+            reviewer="editor:verified-review",
+            reviewer_type=reviewer_type,
+            decision="approved",
+            claims=(Claim("c1", "A verifiable technology claim"),),
+            evidence=(
+                Evidence("https://www.theverge.com/article-a", "The Verge report", now, ("c1",)),
+                Evidence("https://arstechnica.com/article-b", "Ars Technica report", now, ("c1",)),
+            ),
+        )
+
+    @staticmethod
+    def report_payload(report):
+        return json.dumps({
+            "profile_key": report.profile_key,
+            "reviewed_at": report.reviewed_at,
+            "reviewer": report.reviewer,
+            "reviewer_type": report.reviewer_type,
+            "decision": report.decision,
+            "claims": [{"claim_id": item.claim_id, "text": item.text} for item in report.claims],
+            "evidence": [{
+                "url": item.url, "title": item.title, "published_at": item.published_at,
+                "supports_claim_ids": list(item.supports_claim_ids), "support_type": item.support_type
+            } for item in report.evidence],
+        }, ensure_ascii=False)
+
     def publishable_content(self, **overrides):
         row = {
             "id": "content-1",
@@ -52,6 +84,9 @@ class D1ClientTests(unittest.TestCase):
             "ai_disclosure_set": 1,
             "fact_check_passed": 0,
             "fact_check_reference": "",
+            "fact_check_report_json": "",
+            "source_urls_json": "[]",
+            "source_published_at_json": "[]",
             "music_embedded": 1,
             "music_license_reference": "original-track-license-001",
         }
@@ -136,6 +171,46 @@ class D1ClientTests(unittest.TestCase):
             )
         self.assertEqual(1, len(requests))
 
+    def test_fact_check_report_requires_human_reviewer(self):
+        client, requests = self.client([
+            self.response([{"profile_id":"youtube_memoryagent","status":"draft"}], 0)
+        ])
+        with self.assertRaisesRegex(D1Error, "fact_check_human_review_required"):
+            client.record_fact_check_report("content-1", "youtube_memoryagent", self.valid_youtube_report("ai_verifier"))
+        self.assertEqual(1, len(requests))
+
+    def test_valid_human_fact_check_report_is_persisted(self):
+        report = self.valid_youtube_report()
+        client, requests = self.client([
+            self.response([{"profile_id":"youtube_memoryagent","status":"draft"}], 0),
+            self.response([], 1),
+        ])
+        reference = client.record_fact_check_report("content-1", "youtube_memoryagent", report)
+        self.assertEqual(report.reference(), reference)
+        self.assertEqual(2, len(requests))
+        update = json.loads(requests[1].data.decode("utf-8"))
+        self.assertIn("fact_check_report_json", update["sql"])
+        self.assertEqual(1, update["params"][0] == reference)
+
+    def test_native_youtube_rejects_fact_check_reference_without_matching_report(self):
+        report = self.valid_youtube_report()
+        content = self.publishable_content(
+            profile_id="youtube_memoryagent", fact_check_passed=1,
+            fact_check_reference="fc_wrong",
+            fact_check_report_json=self.report_payload(report),
+            source_urls_json=json.dumps([item.url for item in report.evidence]),
+            source_published_at_json=json.dumps([item.published_at for item in report.evidence]),
+        )
+        client, requests = self.client([self.response([content], 0)])
+        with self.assertRaisesRegex(D1Error, "fact_check_reference_mismatch"):
+            client.reserve_job(
+                content_id="content-1", profile_id="youtube_memoryagent",
+                scheduled_at="2026-11-14T12:00:00+00:00",
+                idempotency_key="youtube-key", provider="youtube_direct",
+                media_artifact_id="artifact-123"
+            )
+        self.assertEqual(1, len(requests))
+
     def test_native_tiktok_job_requires_licensed_embedded_music(self):
         client, requests = self.client([
             self.response([self.publishable_content(music_embedded=0, music_license_reference="")], 0)
@@ -165,10 +240,14 @@ class D1ClientTests(unittest.TestCase):
 
 
     def test_native_youtube_job_requires_fact_check_and_can_be_scheduled(self):
+        report = self.valid_youtube_report()
         content = self.publishable_content(
             profile_id="youtube_memoryagent",
             fact_check_passed=1,
-            fact_check_reference="factcheck:sha256:report-001",
+            fact_check_reference=report.reference(),
+            fact_check_report_json=self.report_payload(report),
+            source_urls_json=json.dumps([item.url for item in report.evidence]),
+            source_published_at_json=json.dumps([item.published_at for item in report.evidence]),
             music_embedded=0,
             music_license_reference=""
         )
