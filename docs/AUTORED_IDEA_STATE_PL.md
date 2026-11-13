@@ -27,7 +27,7 @@
 | Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; brak adaptera w Workerze |
 | TikTok @ocenionona6 | PARTIAL | Metricool brand RED ABSURD IDEA połączony; brak adaptera w Workerze |
-| YouTube @MemoryAgent-r3 | BLOCKED | Metricool ma channel ID, ale zgodność z handle wymaga potwierdzenia; brak adaptera/OAuth |
+| YouTube @MemoryAgent-r3c | BLOCKED | Metricool ma channel ID, ale zgodność z handle wymaga potwierdzenia; brak adaptera/OAuth |
 | Publikacja E2E | NOT RUN | żadna publikacja nie została wykonana |
 | Backup / restore | BLOCKED | plan istnieje, brak odseparowanego magazynu i testu odtworzenia |
 
@@ -63,7 +63,7 @@
 
 1. Brak adapterów publikacji dla Publora, Metricool, TikTok i YouTube.
 2. Brak poświadczeń platform publikacyjnych w Workerze.
-3. Brak potwierdzenia, że YouTube channel ID należy do `@MemoryAgent-r3`.
+3. Brak potwierdzenia, że YouTube channel ID należy do `@MemoryAgent-r3c`.
 4. Brak renderera i testów FFmpeg.
 5. Brak potwierdzonego darmowego sposobu generowania obrazów/wideo w wymaganej skali.
 6. Brak bezpiecznego, odseparowanego miejsca backupu i testu restore.
