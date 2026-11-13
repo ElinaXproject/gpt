@@ -1,5 +1,6 @@
 import json
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -205,7 +206,7 @@ class PubloraClientTests(unittest.TestCase):
             captured.append(request)
             return FakeResponse(responses.pop(0))
         client = PubloraClient(api_key="test-key", opener=opener)
-        with unittest.mock.patch.object(publora_client.time, "sleep") as sleep:
+        with patch.object(publora_client.time, "sleep") as sleep:
             result = client.complete_media("media-1")
         self.assertEqual("ready", result["status"])
         self.assertEqual(2, len(captured))
