@@ -40,7 +40,7 @@ class FactCheckReportTests(unittest.TestCase):
             claims=self.report.claims,
             evidence=(
                 Evidence("https://example.org/a", "Source A", self.report.reviewed_at, ("c1",)),
-                Evidence("https://sub.example.org/b", "Source B", self.report.reviewed_at, ("c1",)),
+                Evidence("https://example.org/b", "Source B", self.report.reviewed_at, ("c1",)),
             ),
         )
         self.assertIn("insufficient_independent_evidence:c1", report.validate({"example.org"}))
