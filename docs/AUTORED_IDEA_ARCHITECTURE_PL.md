@@ -124,6 +124,7 @@ Obecne tabele Activepieces (Kalendarz treści, Biblioteka mediów, Dziennik auto
 - Każdy kanał ma osobny dzienny/tygodniowy limit i licznik platformowy.
 - Muzyka: tylko katalog i licencje dopuszczone przez platformę; nie osadzać muzyki bez praw.
 - AI disclosure: ustawiać zgodnie z wymaganiami platformy i rodzajem treści.
+- Muzyka TikTok: dla postów zdjęciowych używać wyłącznie dozwolonego mechanizmu wyboru muzyki przez Publora (autoAddMusic=true, jeśli jest dostępny dla danego konta); dla filmów muzykę osadzać przed uploadem tylko wtedy, gdy istnieje potwierdzona licencja na użycie komercyjne i publikację na danej platformie. Nie pobierać ani nie osadzać utworów bez praw.
 
 ## 8. Warunki uruchomienia produkcyjnego
 
