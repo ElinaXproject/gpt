@@ -109,6 +109,9 @@ Aktualny snapshot Publora Starter: 15 platform-postów miesięcznie łącznie, 3
 
 ## 6. Bramka bezpieczeństwa
 
+- Publikacja może odbywać się wyłącznie z kont, których właściciele spełniają aktualne wymagania wieku i kwalifikacji danej platformy. Nie wolno fałszować wieku, obchodzić kontroli tożsamości ani omijać wymaganej zgody lub nadzoru osoby dorosłej.
+
+
 ## 6. Bramka bezpieczeństwa
 Do czasu przejścia preflight:
 - nie uruchamiać automatycznej publikacji,
