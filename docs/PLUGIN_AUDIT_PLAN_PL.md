@@ -292,3 +292,38 @@ Kontrola wykonana ponownie w trybie read-only. Nie zmieniano żadnego workflow a
 2. Activepieces nie ma OAuth connections; integracje zewnętrzne wymagają osobnego połączenia lub jawnego adaptera.
 3. Metricool i Publora mają różne zestawy profili; trzeba ustalić, który profil ma być obsługiwany przez które narzędzie, bez publikowania próbnego materiału.
 4. Błędy JSON i drugiego obrazu z poprzednich testów pozostają otwarte. Naprawa dopiero na kopii flow i po testach, nie w produkcji.
+
+
+## 13. Obowiązkowy rejestr zmian i aktualizacja dokumentacji na bieżąco
+
+**Zasada nadrzędna:** dokumentacja jest żywym rejestrem stanu faktycznego, a nie opisem planowanego systemu. Każda zmiana — planowana i nieplanowana — musi zostać odnotowana w tym samym cyklu pracy.
+
+### Zdarzenia wymagające aktualizacji
+- zmiana konfiguracji, promptu, harmonogramu, połączenia, uprawnień lub limitu;
+- nowy workflow, krok, integracja, konto lub profil;
+- błąd, awaria, timeout, nieudany run albo nieoczekiwany wynik;
+- naprawa, rollback, wyłączenie, usunięcie lub zastąpienie komponentu;
+- publikacja, odrzucenie materiału lub zmiana statusu publikacji;
+- zmiana planu darmowego, limitu, ceny, warunków licencji lub dostępności API.
+
+### Procedura obowiązkowa dla każdej zmiany
+1. **Przed zmianą:** odczytać aktualny stan i wskazać elementy zależne. Przy ryzyku regresji utworzyć kopię/branch i zachować możliwość rollbacku.
+2. **Wykonanie:** zmienić tylko zakres konieczny; nie naruszać działających elementów bez uzasadnienia.
+3. **Test:** sprawdzić wynik w systemie źródłowym, wykonać test funkcjonalny i — gdy dotyczy — regresję.
+4. **Dokumentacja:** w tym samym zadaniu zaktualizować właściwą sekcję, status Axx, rejestr decyzji i dziennik zmian. Zapisać datę/czas Europe/Warsaw, identyfikator zasobu/runu, wynik testu, ryzyko i rollback.
+5. **Weryfikacja:** ponownie odczytać zapisany plik z GitHub. Nie oznaczać zadania jako DONE/VERIFIED, jeśli nie ma dowodu.
+6. **Raport:** użytkownik otrzymuje krótki wynik: co faktycznie zmieniono, co przetestowano, co nadal nie działa i link do dowodu.
+
+### Reguły statusu i rzetelności
+- Zmiana bez testu = CHANGED / UNVERIFIED, nie DONE.
+- Zgłoszony problem bez reprodukcji = OPEN / NEEDS DIAGNOSIS.
+- Naprawa bez testu regresyjnego = FIXED / UNVERIFIED.
+- Brak odczytu integracji = UNKNOWN, nigdy domyślnie CONNECTED.
+- Nieplanowana zmiana nie może pozostać wyłącznie w historii rozmowy.
+- Nie wolno deklarować pracy w tle ani automatycznej synchronizacji, jeśli nie działa do tego potwierdzony mechanizm.
+- Jeśli aktualizacja GitHub nie powiedzie się, należy jawnie zgłosić brak zapisu; nie udawać, że dokumentacja została zaktualizowana.
+
+### Dziennik zmian
+| Data i czas (Europe/Warsaw) | Zdarzenie | Dokumentacja / dowód | Status |
+|---|---|---|---|
+| 2026-11-13 15:20 | Zgłoszono brak bieżącej aktualizacji dokumentacji po zmianach nieplanowanych. Dodano obowiązkowy protokół aktualizacji zdarzeniowej i weryfikacji zapisu. | Sekcja 13; commit tej aktualizacji wymaga ponownego odczytu weryfikacyjnego. | IN PROGRESS |
