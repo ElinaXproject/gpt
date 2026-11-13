@@ -14,7 +14,7 @@
 | 6 | Warstwa limitów, kolejka, idempotencja | bezpieczne zadania publikacyjne | timeout, retry, quota tests | PARTIAL — idempotencja w core i schedulerze; brak trwałej kolejki produkcyjnej |
 | 7 | Adapter TikTok @pieknemedia | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — Publora connected in ChatGPT, brak bezpiecznego poświadczenia w Workerze |
 | 8 | Adapter TikTok @ocenionona6 | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — Metricool connected in ChatGPT, brak bezpiecznego poświadczenia w Workerze |
-| 9 | Adapter YouTube @MemoryAgent-r3 | testowany adapter | OAuth, upload prywatny, odczyt statusu | BLOCKED — handle/channel ID i OAuth wymagają potwierdzenia |
+| 9 | Adapter YouTube @MemoryAgent-r3c | testowany adapter | OAuth, upload prywatny, odczyt statusu | BLOCKED — handle/channel ID i OAuth wymagają potwierdzenia |
 | 10 | Monitoring, alerty i automatyczne naprawy | operacyjny runbook | symulacje awarii | NOT RUN |
 | 11 | Backup, restore i DR | kopie i odtworzenie | test restore | BLOCKED — brak wybranej infrastruktury backupu |
 | 12 | Testy E2E, test regresji, uruchomienie produkcyjne | system PRODUCTION VERIFIED | pełna macierz testów | NOT RUN |
