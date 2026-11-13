@@ -95,6 +95,76 @@ async function generateIdeas(env, localDate) {
   return parsed.items;
 }
 
+function validateHumorDraft(draft) {
+  const errors = [];
+  if (typeof draft?.title !== "string" || !draft.title.trim() || draft.title.length > 80) errors.push("invalid_title");
+  if (typeof draft?.description !== "string" || !draft.description.trim() || draft.description.length > 2200) errors.push("invalid_description");
+  if (!Array.isArray(draft?.hashtags) || draft.hashtags.length < 3 || draft.hashtags.length > 8) {
+    errors.push("invalid_hashtags");
+  } else if (draft.hashtags.some((tag) => typeof tag !== "string" || !/^#[\\p{L}\\p{N}_]{2,}$/u.test(tag))) {
+    errors.push("invalid_hashtag_format");
+  }
+  if (!Array.isArray(draft?.script) || draft.script.length < 3 || draft.script.length > 5) {
+    errors.push("invalid_scene_count");
+  } else if (draft.script.some((scene) =>
+    typeof scene?.scene !== "string" || !scene.scene.trim() ||
+    !Number.isFinite(scene.duration_seconds) || scene.duration_seconds < 2 || scene.duration_seconds > 15
+  )) {
+    errors.push("invalid_scene");
+  }
+  const duration = Number(draft?.duration_seconds);
+  if (!Number.isFinite(duration) || duration < 20 || duration > 45) errors.push("invalid_duration");
+  if (Array.isArray(draft?.script)) {
+    const sceneDuration = draft.script.reduce((sum, scene) => sum + Number(scene?.duration_seconds || 0), 0);
+    if (Math.abs(sceneDuration - duration) > 2) errors.push("scene_duration_mismatch");
+  }
+  if (typeof draft?.voiceover_text !== "string" || draft.voiceover_text.trim().length < 40) errors.push("invalid_voiceover");
+  if (typeof draft?.visual_direction !== "string" || !draft.visual_direction.trim()) errors.push("missing_visual_direction");
+
+  const allText = [
+    draft?.title, draft?.description, draft?.voiceover_text, draft?.visual_direction,
+    ...(Array.isArray(draft?.script) ? draft.script.map((scene) => scene?.scene || "") : [])
+  ].join(" ").toLowerCase();
+  const blocked = [
+    /\\b(samookalecz|samob[oó]j|self[- ]harm|suicid)\\w*/i,
+    /\\b(narkotyk|drugs?|cocaine|heroin|methamphetamine)\\w*/i,
+    /\\b(alkohol|alcohol|vodka|beer|wine|cigarette|vape|nicotine)\\w*/i,
+    /\\b(hazard|gambling|casino|betting)\\w*/i,
+    /\\b(bro[nń]|pistolet|gun|weapon|knife)\\w*/i,
+    /\\b(seks|sexual|porn|erotic)\\w*/i,
+    /\\b(niebezpieczn[a-z]* wyzwan|dangerous challenge|risky stunt)\\w*/i
+  ];
+  if (blocked.some((pattern) => pattern.test(allText))) errors.push("safety_filter_blocked");
+  return errors;
+}
+
+async function generateHumorDraft(env, idea, localDate) {
+  const prompt = [
+    "Napisz oryginalny, krótki scenariusz humorystyczny po polsku dla TikToka @pieknemedia.",
+    "Temat i hook są inspiracją; nie kopiuj cudzych tekstów ani memów.",
+    "Wyłącznie bezpieczny humor sytuacyjny z codziennego życia. Bez wyśmiewania konkretnych osób lub grup, bez stereotypów, obelg i treści seksualnych.",
+    "Nie twórz treści o niebezpiecznych działaniach, ryzykownych wyzwaniach, używkach, hazardzie, broni ani samookaleczeniu.",
+    "Zwróć wyłącznie JSON: { \"title\": string, \"description\": string, \"hashtags\": string[], \"script\": [{ \"scene\": string, \"duration_seconds\": number }], \"voiceover_text\": string, \"visual_direction\": string, \"duration_seconds\": number }.",
+    "3–5 scen, 20–45 sekund łącznie, 3–8 hashtagów. Nie dodawaj instrukcji ryzykownych zachowań.",
+    "Idea: " + JSON.stringify(idea),
+    "Data lokalna: " + localDate
+  ].join("\\n");
+  const result = await env.AI.run(MODEL_ID, {
+    messages: [
+      { role: "system", content: "Jesteś scenarzystą krótkich, oryginalnych i bezpiecznych treści komediowych. Zwracasz wyłącznie JSON." },
+      { role: "user", content: prompt }
+    ],
+    max_tokens: 1000,
+    response_format: { type: "json_object" },
+    temperature: 0.65
+  });
+  const raw = result?.response ?? result?.choices?.[0]?.message?.content ?? result?.result?.choices?.[0]?.message?.content ?? result?.output_text ?? "";
+  const draft = extractJson(raw);
+  const errors = validateHumorDraft(draft);
+  if (errors.length) throw new Error(errors.join(",").slice(0, 80));
+  return draft;
+}
+
 async function runDaily(env, scheduledAt = new Date()) {
   const local = localTimeParts(scheduledAt);
   const localDate = local.year + "-" + local.month + "-" + local.day;
@@ -162,11 +232,57 @@ async function runDaily(env, scheduledAt = new Date()) {
       ));
     }
     await env.DB.batch(statements);
+
+    let humorDraftStatus = "not_generated";
+    const humorIdea = ideas.find((item) => item.profile_id === "tiktok_pieknemedia");
+    if (humorIdea) {
+      try {
+        const draft = await generateHumorDraft(env, humorIdea, localDate);
+        const contentId = "idea_" + localDate + "_tiktok_pieknemedia";
+        await env.DB.batch([
+          env.DB.prepare(
+            "UPDATE content_items SET title=?, description=?, hashtags_json=?, script=?, status='draft', safety_review_status='pending', updated_at=CURRENT_TIMESTAMP " +
+            "WHERE id=? AND profile_id='tiktok_pieknemedia' AND status='idea'"
+          ).bind(draft.title, draft.description, JSON.stringify(draft.hashtags), JSON.stringify({
+            scenes: draft.script,
+            voiceover_text: draft.voiceover_text,
+            visual_direction: draft.visual_direction,
+            duration_seconds: draft.duration_seconds
+          }), contentId),
+          env.DB.prepare(
+            "INSERT OR IGNORE INTO events (id, event_type, profile_id, content_id, detail_json) VALUES (?, 'draft_generated', 'tiktok_pieknemedia', ?, ?)"
+          ).bind(
+            "event_draft_" + localDate + "_tiktok_pieknemedia",
+            contentId,
+            JSON.stringify({
+              localDate,
+              stage: "draft_created_pending_safety_review",
+              sceneCount: draft.script.length,
+              durationSeconds: draft.duration_seconds,
+              safetyReview: "pending"
+            })
+          )
+        ]);
+        humorDraftStatus = "draft_created_pending_safety_review";
+      } catch (draftError) {
+        humorDraftStatus = "draft_generation_failed";
+        try {
+          await env.DB.prepare(
+            "INSERT OR IGNORE INTO events (id, event_type, profile_id, content_id, detail_json) VALUES (?, 'draft_generation_failed', 'tiktok_pieknemedia', ?, ?)"
+          ).bind(
+            "event_draft_failed_" + localDate + "_tiktok_pieknemedia",
+            "idea_" + localDate + "_tiktok_pieknemedia",
+            JSON.stringify({ localDate, error: draftError instanceof Error ? draftError.message.slice(0, 80) : "unknown_error" })
+          ).run();
+        } catch {}
+      }
+    }
+
     await env.DB.prepare(
       "UPDATE daily_runs SET status='succeeded', completed_at=CURRENT_TIMESTAMP, result_count=? WHERE local_date=?"
     ).bind(ideas.length, localDate).run();
 
-    return { status: "succeeded", localDate, resultCount: ideas.length };
+    return { status: "succeeded", localDate, resultCount: ideas.length, humorDraftStatus };
   } catch (error) {
     await env.DB.prepare(
       "UPDATE daily_runs SET status='failed', completed_at=CURRENT_TIMESTAMP, error_code=? WHERE local_date=?"
@@ -241,3 +357,6 @@ export default {
     ctx.waitUntil(runDaily(env, new Date(controller.scheduledTime)));
   }
 };
+
+
+export { validateHumorDraft, generateHumorDraft };
