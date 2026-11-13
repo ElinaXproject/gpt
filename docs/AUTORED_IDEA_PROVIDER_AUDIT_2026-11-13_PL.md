@@ -33,7 +33,7 @@ Odczytano jeden brand:
 - nazwa: `RED ABSURD IDEA`;
 - strefa: `Europe/Warsaw`;
 - połączenie TikTok `@ocenionona6`;
-- połączenie YouTube z identyfikatorem kanału widocznym w Metricool; zgodność z handle `@MemoryAgent-r3` wymaga jeszcze potwierdzenia;
+- połączenie YouTube z identyfikatorem kanału widocznym w Metricool; zgodność z handle `@MemoryAgent-r3c` wymaga jeszcze potwierdzenia;
 - Metricool zwrócił także inne sieci, ale nie są częścią tego projektu.
 
 Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie przyjmować żadnej liczby jako faktu i nie planować wykorzystania limitu, dopóki nie zostanie potwierdzony.
@@ -44,7 +44,7 @@ Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie p
 |---|---|---|
 | TikTok `@pieknemedia` | Publora | CONNECTED |
 | TikTok `@ocenionona6` | Metricool | CONNECTED |
-| YouTube `@MemoryAgent-r3` | Metricool | CHANNEL ID PRESENT; HANDLE NOT VERIFIED |
+| YouTube `@MemoryAgent-r3c` | Metricool | CHANNEL ID PRESENT; HANDLE NOT VERIFIED |
 
 ## Blokady integracyjne
 
@@ -52,7 +52,7 @@ Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie p
 2. Nie ma jeszcze adapterów produkcyjnych z testami kontraktowymi.
 3. Nie wolno kopiować tokenów z połączeń ChatGPT do kodu ani repozytorium.
 4. Poświadczenia należy dodać wyłącznie przez bezpieczny mechanizm sekretów providera, po autoryzacji właściciela konta.
-5. YouTube musi zostać potwierdzony jako właściwy kanał `@MemoryAgent-r3` przed pierwszym uploadem.
+5. YouTube musi zostać potwierdzony jako właściwy kanał `@MemoryAgent-r3c` przed pierwszym uploadem.
 6. Każdy adapter musi używać idempotency key i po nieznanym wyniku sprawdzać stan posta przed ponowieniem.
 
 ## Reguły publikacji
