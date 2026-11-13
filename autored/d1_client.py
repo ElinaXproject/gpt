@@ -64,6 +64,34 @@ class D1Client:
             raise D1Error("statement_failed")
         return first
 
+    def _validate_content_for_publish(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
+        row = self.query(
+            "SELECT id, profile_id, status, safety_review_status, rights_reference, "
+            "ai_disclosure_required, ai_disclosure_set, fact_check_passed, fact_check_reference, "
+            "music_embedded, music_license_reference FROM content_items WHERE id = ?",
+            [content_id],
+        ).get("results", [])
+        if len(row) != 1:
+            raise D1Error("content_item_not_found")
+        item = row[0]
+        if item.get("profile_id") != profile_id:
+            raise D1Error("content_profile_mismatch")
+        if item.get("status") not in {"draft", "ready", "scheduled"}:
+            raise D1Error("content_status_not_publishable")
+        if item.get("safety_review_status") != "passed":
+            raise D1Error("safety_review_not_passed")
+        if not str(item.get("rights_reference") or "").strip():
+            raise D1Error("rights_reference_missing")
+        if item.get("ai_disclosure_required") == 1 and item.get("ai_disclosure_set") != 1:
+            raise D1Error("ai_disclosure_missing")
+        if profile_id in {"tiktok_ocenionona6", "youtube_memoryagent"}:
+            if item.get("fact_check_passed") != 1 or not str(item.get("fact_check_reference") or "").strip():
+                raise D1Error("fact_check_not_passed")
+        if provider == "tiktok_direct":
+            if item.get("music_embedded") != 1 or not str(item.get("music_license_reference") or "").strip():
+                raise D1Error("licensed_embedded_music_required")
+        return item
+
     def record_scheduled(
         self,
         *,
@@ -73,17 +101,7 @@ class D1Client:
         idempotency_key: str,
         provider_post_group_id: str,
     ) -> dict[str, Any]:
-        row = self.query(
-            "SELECT id, profile_id, status FROM content_items WHERE id = ?",
-            [content_id],
-        ).get("results", [])
-        if len(row) != 1:
-            raise D1Error("content_item_not_found")
-        item = row[0]
-        if item.get("profile_id") != profile_id:
-            raise D1Error("content_profile_mismatch")
-        if item.get("status") not in {"idea", "draft", "ready", "scheduled"}:
-            raise D1Error("content_status_not_schedulable")
+        self._validate_content_for_publish(content_id, profile_id, "publora")
 
         job_id = "job_" + hashlib.sha256(
             (content_id + "\0" + profile_id + "\0" + idempotency_key).encode("utf-8")
