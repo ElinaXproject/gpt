@@ -12,9 +12,9 @@
 | 4 | Generator tekstu + research + fact-check | kompletne metadane | JSON, źródła i walidacja | PARTIAL — test JSON modelu; pełny batch i research niezaliczone |
 | 5 | Generator mediów + FFmpeg + walidacja plików | poprawne pliki końcowe | FFprobe, hash, decode test | PARTIAL — Piper/FFmpeg smoke test PASS; nowe tła weryfikowane |
 | 6 | Warstwa limitów, kolejka, idempotencja | bezpieczne zadania publikacyjne | timeout, retry, quota tests | PARTIAL — idempotencja w core i schedulerze; brak trwałej kolejki produkcyjnej |
-| 7 | Adapter TikTok @pieknemedia | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — brak adaptera i poświadczeń |
-| 8 | Adapter TikTok @ocenionona6 | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — brak adaptera i poświadczeń |
-| 9 | Adapter YouTube @MemoryAgent-r3 | testowany adapter | OAuth, upload prywatny, odczyt statusu | BLOCKED — potwierdzenie kanału i OAuth |
+| 7 | Adapter TikTok @pieknemedia | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — Publora connected in ChatGPT, brak bezpiecznego poświadczenia w Workerze |
+| 8 | Adapter TikTok @ocenionona6 | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — Metricool connected in ChatGPT, brak bezpiecznego poświadczenia w Workerze |
+| 9 | Adapter YouTube @MemoryAgent-r3 | testowany adapter | OAuth, upload prywatny, odczyt statusu | BLOCKED — handle/channel ID i OAuth wymagają potwierdzenia |
 | 10 | Monitoring, alerty i automatyczne naprawy | operacyjny runbook | symulacje awarii | NOT RUN |
 | 11 | Backup, restore i DR | kopie i odtworzenie | test restore | BLOCKED — brak wybranej infrastruktury backupu |
 | 12 | Testy E2E, test regresji, uruchomienie produkcyjne | system PRODUCTION VERIFIED | pełna macierz testów | NOT RUN |
