@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from autored.media_validation import MediaValidationError, validate_tiktok_video
+from autored.media_validation import MediaValidationError, validate_tiktok_video, validate_youtube_video
 
 
 class MediaValidationTests(unittest.TestCase):
@@ -47,6 +47,21 @@ class MediaValidationTests(unittest.TestCase):
         invalid["streams"][1]["sample_rate"] = "44100"
         with self.assertRaisesRegex(MediaValidationError, "aac_48khz_stereo_required"):
             validate_tiktok_video(self.path, self.runner(invalid))
+
+
+    def test_youtube_landscape_video_passes(self):
+        landscape = json.loads(json.dumps(self.probe))
+        landscape["streams"][0]["width"] = 1920
+        landscape["streams"][0]["height"] = 1080
+        result = validate_youtube_video(self.path, self.runner(landscape), format_type="longform")
+        self.assertEqual(1920, result["width"])
+        self.assertEqual("longform", result["format_type"])
+
+    def test_youtube_short_over_three_minutes_is_blocked(self):
+        long_short = json.loads(json.dumps(self.probe))
+        long_short["format"]["duration"] = "181"
+        with self.assertRaisesRegex(MediaValidationError, "duration_out_of_range"):
+            validate_youtube_video(self.path, self.runner(long_short), format_type="short")
 
     def test_duration_outside_range_is_blocked(self):
         invalid = json.loads(json.dumps(self.probe))
