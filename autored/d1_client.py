@@ -315,7 +315,8 @@ class D1Client:
 
     def _validate_content_for_publish(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
         row = self.query(
-            "SELECT id, profile_id, status, safety_review_status, safety_review_reference, safety_review_report_json, rights_reference, "
+            "SELECT id, profile_id, topic, status, title, description, hashtags_json, script, "
+            "safety_review_status, safety_review_reference, safety_review_report_json, rights_reference, "
             "ai_disclosure_required, ai_disclosure_set, fact_check_passed, fact_check_reference, "
             "fact_check_report_json, source_urls_json, source_published_at_json, "
             "music_embedded, music_license_reference, media_mime, media_bytes, media_sha256 "
@@ -434,6 +435,9 @@ class D1Client:
             "provider_post_group_id": provider_post_group_id,
         }
 
+
+    def get_publishable_content(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
+        return self._validate_content_for_publish(content_id, profile_id, provider)
 
     def reserve_job(
         self,
