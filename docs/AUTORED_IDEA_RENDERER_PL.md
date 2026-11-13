@@ -11,7 +11,7 @@ Plik: `scripts/render_vertical_video.py`
 - Wejście: JSON z tytułem, skryptem, CTA i opcjonalną ścieżką do tła.
 - Narracja: lokalny Piper TTS, domyślnie `pl_PL-darkman-medium`.
 - Napisy: SRT tworzone z segmentów tekstu.
-- Obraz: pionowe 1080×1920, 30 FPS; tło programowe lub przekazany obraz.
+- Obraz: pionowe 1080×1920, 30 FPS; trzy warianty tła motion-graphics (tech, humor, education) lub przekazany obraz AI.
 - Wideo: H.264 / yuv420p; audio AAC, 48 kHz, stereo.
 - Normalizacja audio: FFmpeg loudnorm, cel -16 LUFS.
 - Walidacja końcowa: FFprobe sprawdza kodeki, wymiary i czas trwania.
