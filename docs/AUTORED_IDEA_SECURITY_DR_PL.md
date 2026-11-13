@@ -73,6 +73,25 @@ Zasady:
 
 Źródło: https://developers.cloudflare.com/r2/pricing/
 
+### 3C. Codzienna kopia off-site — workflow gotowy, aktywacja wymaga sekretów
+
+Workflow `.github/workflows/d1-backup.yml`:
+- uruchamia się raz dziennie o 10:00 Europe/Warsaw (dwa wywołania UTC z bramką DST);
+- eksportuje D1 przez przypięty Wrangler `4.161.0`;
+- szyfruje SQL przez age przed wysłaniem artefaktu;
+- tworzy manifest SHA-256 dla pliku jawnego i zaszyfrowanego;
+- przechowuje zaszyfrowany artefakt do 90 dni;
+- przy braku sekretów pomija harmonogram z ostrzeżeniem; ręczne uruchomienie zgłasza brak konfiguracji.
+
+Wymagane ręczne ustawienia właściciela:
+1. Utworzyć lokalnie parę age: `age-keygen -o autored-backup-key.txt`.
+2. Zachować plik prywatny offline; nigdy nie commitować go ani nie przesyłać do rozmowy.
+3. Dodać publiczny recipient `age1...` jako GitHub repository variable `BACKUP_AGE_RECIPIENT`.
+4. Utworzyć Cloudflare API Token z minimalnym uprawnieniem D1 do eksportu bazy `autored_idea_db` i zapisać jako GitHub Actions secret `CLOUDFLARE_API_TOKEN`.
+5. Po dodaniu ustawień uruchomić workflow ręcznie i sprawdzić, czy powstał zaszyfrowany artefakt.
+
+Uwaga: eksport D1 może czasowo blokować zapytania do bazy. Baza ma obecnie ok. 96 KB, ale workflow nie powinien być uruchamiany równocześnie z migracją ani testem restore. Pełny test odszyfrowania i odtworzenia artefaktu pozostaje do wykonania po dodaniu klucza prywatnego i sekretu API.
+
 ## 4. Monitoring i automatyczna naprawa
 
 Monitorować:
@@ -136,7 +155,7 @@ Automatyczne naprawy zabronione:
 
 ## 7. Otwarte blokady
 
-- D1 Time Travel jest aktywny i przetestowany; brak niezależnego magazynu kopii off-site. R2 wymaga ręcznego włączenia w Dashboard.
+- D1 Time Travel jest aktywny i przetestowany; workflow szyfrowanej kopii off-site jest przygotowany, ale oczekuje na API token i publiczny recipient age. R2 pozostaje wyłączony.
 - Brak aktywnych połączeń w projekcie Activepieces.
 - Brak testu odtworzenia pełnej kopii produkcyjnej do oddzielnego środowiska; test Time Travel wykonano na tymczasowej bazie testowej.
 - Nie wdrażać Cloudflare R2 ani płatnego magazynu w ramach obecnego budżetu.
