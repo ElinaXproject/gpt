@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from autored.providers.tiktok import TikTokDirectPublisher, TikTokError
 
@@ -120,6 +121,38 @@ class TikTokDirectPublisherTests(unittest.TestCase):
                     music_embedded=True, music_license_reference="original-track-license-001"
                 )
         self.assertEqual(3, len(captured))
+
+    def test_tiktok_chunk_plan_merges_trailing_bytes_into_final_chunk(self):
+        responses = [
+            FakeResponse({"access_token": "access"}),
+            FakeResponse(self.creator_info()),
+            FakeResponse({"data": {"publish_id": "publish-chunked", "upload_url": "https://upload.us.tiktokapis.com/video/?session=chunked"}}),
+            FakeResponse({}, status=206),
+            FakeResponse({}, status=201),
+            FakeResponse({"data": {"status": "PUBLISH_COMPLETE"}}),
+        ]
+        publisher, captured = self.publisher(responses, audited=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "clip.mp4"
+            media.write_bytes(b"0123456789012345678901234")
+            with patch("autored.providers.tiktok.MIN_CHUNK_SIZE", 5), \\
+                 patch("autored.providers.tiktok.CHUNK_SIZE", 10), \\
+                 patch("autored.providers.tiktok.MAX_CHUNK_SIZE", 20), \\
+                 patch("autored.providers.tiktok.MAX_FINAL_CHUNK_SIZE", 30):
+                result = publisher.publish_video(
+                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
+                    scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    music_embedded=True, music_license_reference="original-track-license-001"
+                )
+        self.assertEqual("published", result["status"])
+        init_body = json.loads(captured[2].data.decode("utf-8"))
+        self.assertEqual(10, init_body["source_info"]["chunk_size"])
+        self.assertEqual(2, init_body["source_info"]["total_chunk_count"])
+        self.assertEqual(
+            ["bytes 0-9/25", "bytes 10-24/25"],
+            [{name.lower(): value for name, value in request.header_items()}["content-range"] for request in captured[3:5]]
+        )
+        self.assertEqual([b"0123456789", b"012345678901234"], [request.data for request in captured[3:5]])
 
     def test_creator_account_mismatch_blocks_before_video_init(self):
         responses = [
