@@ -24,6 +24,43 @@ class WorkbenchRepositoryTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.read(path)
 
+    def test_autored_project_documents_exist(self):
+        required = (
+            "docs/AUTORED_IDEA_ARCHITECTURE_PL.md",
+            "docs/AUTORED_IDEA_EXECUTION_PLAN_PL.md",
+            "docs/AUTORED_IDEA_SECURITY_DR_PL.md",
+            "docs/AUTORED_IDEA_TEST_PLAN_PL.md",
+            "docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md",
+        )
+        for path in required:
+            with self.subTest(path=path):
+                self.read(path)
+
+    def test_autored_architecture_maps_all_target_profiles(self):
+        content = self.read("docs/AUTORED_IDEA_ARCHITECTURE_PL.md")
+        for profile in ("@ocenionona6", "@pieknemedia", "@MemoryAgent-r3"):
+            with self.subTest(profile=profile):
+                self.assertIn(profile, content)
+
+    def test_autored_test_matrix_has_22_cases(self):
+        content = self.read("docs/AUTORED_IDEA_TEST_PLAN_PL.md")
+        case_ids = set(re.findall(r"^\|\s*(T\d{2})\s*\|", content, re.MULTILINE))
+        self.assertEqual({f"T{i:02d}" for i in range(1, 23)}, case_ids)
+        self.assertIn("NOT RUN", content)
+
+    def test_autored_security_plan_includes_backup_and_restore(self):
+        content = self.read("docs/AUTORED_IDEA_SECURITY_DR_PL.md")
+        for required in ("Backup & Disaster Recovery", "SHA-256", "RPO", "RTO", "test odtworzenia"):
+            with self.subTest(required=required):
+                self.assertIn(required, content)
+
+    def test_autored_execution_plan_has_staged_gates(self):
+        content = self.read("docs/AUTORED_IDEA_EXECUTION_PLAN_PL.md")
+        for stage in range(0, 13):
+            with self.subTest(stage=stage):
+                self.assertRegex(content, rf"(?m)^\|\s*{stage}\s*\|")
+        self.assertIn("BLOCKED", content)
+
     def test_all_documented_regression_cases_are_present(self):
         content = self.read("docs/EVAL_CASES.md")
         case_ids = set(re.findall(r"^\|\s*(E\d{2})\s*\|", content, re.MULTILINE))
