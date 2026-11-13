@@ -40,7 +40,7 @@ const expectedItems = [
 
 function createEnv(options = {}) {
   const statements = [];
-  const state = { status: options.existingStatus ?? null };
+  const state = { status: options.existingStatus ?? null, startedAt: options.existingStartedAt ?? new Date().toISOString().replace("T", " ").slice(0, 19) };
   let aiCalls = 0;
   const DB = {
     prepare(sql) {
@@ -50,7 +50,7 @@ function createEnv(options = {}) {
         },
         async first() {
           if (sql.includes("SELECT status, started_at FROM daily_runs")) {
-            return state.status ? { status: state.status, started_at: "2026-11-13 08:00:00" } : null;
+            return state.status ? { status: state.status, started_at: state.startedAt } : null;
           }
           if (sql.includes("SELECT COUNT(*) AS profile_count FROM profiles")) {
             return { profile_count: 3 };
@@ -59,10 +59,18 @@ function createEnv(options = {}) {
         },
         async run() {
           statements.push({ sql, params });
-          if (sql.includes("INSERT INTO daily_runs")) state.status = "running";
+          if (sql.includes("UPDATE daily_runs SET status='failed', error_code='stale_run_recovered'")) {
+            if (state.status === "running") state.status = "failed";
+            return { success: true, meta: { changes: state.status === "failed" ? 1 : 0 } };
+          }
+          if (sql.includes("INSERT INTO daily_runs")) {
+            const canClaim = !state.status || ["failed", "skipped"].includes(state.status);
+            if (canClaim) state.status = "running";
+            return { success: true, meta: { changes: canClaim ? 1 : 0 } };
+          }
           if (sql.includes("UPDATE daily_runs SET status='succeeded'")) state.status = "succeeded";
           if (sql.includes("UPDATE daily_runs SET status='failed'")) state.status = "failed";
-          return { success: true };
+          return { success: true, meta: { changes: 1 } };
         },
         sql,
         params
@@ -152,4 +160,24 @@ test("health endpoint reports the D1 binding and all three profiles", async () =
   assert.equal(body.status, "ok");
   assert.equal(body.profileCount, 3);
   assert.equal(body.timezone, "Europe/Warsaw");
+});
+
+
+test("scheduled handler skips an active daily run lease", async () => {
+  const fixture = createEnv({ existingStatus: "running" });
+  const result = await invokeScheduled(fixture.env, Date.UTC(2026, 10, 13, 8));
+  assert.equal(fixture.aiCalls, 0);
+  assert.equal(fixture.state.status, "running");
+  assert.equal(fixture.statements.length, 0);
+});
+
+test("scheduled handler reclaims a stale lease before generating", async () => {
+  const fixture = createEnv({
+    existingStatus: "running",
+    existingStartedAt: "2020-01-01 00:00:00"
+  });
+  await invokeScheduled(fixture.env, Date.UTC(2026, 10, 13, 8));
+  assert.equal(fixture.aiCalls, 1);
+  assert.equal(fixture.state.status, "succeeded");
+  assert.ok(fixture.statements.some(item => item.sql.includes("stale_run_recovered")));
 });
