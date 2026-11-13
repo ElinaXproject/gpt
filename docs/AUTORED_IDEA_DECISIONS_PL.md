@@ -7,12 +7,13 @@
 **Powód:** dostępne uprawnienia zapisu, CI i historia commitów.  
 **Konsekwencje:** nie przechowywać sekretów ani prywatnych plików mediów w publicznym repo.
 
-## ADR-002 — jeden główny orkiestrator
+## ADR-002 — Cloudflare Worker + D1 + Workers AI jako backend
 
-**Status:** wstępna  
-**Decyzja:** preferować Activepieces jako pierwszy kandydat ze względu na istniejący projekt i tabele; nie uruchamiać równolegle Activepieces i n8n dla tego samego procesu.  
-**Warunek:** najpierw potwierdzić limity Cloud, dostępne połączenia i realny koszt kredytów; alternatywa self-hosted wymaga stałej infrastruktury, której jeszcze nie potwierdzono.  
-**Konsekwencje:** nie budować produkcyjnych flow przed potwierdzeniem integracji i modelu kosztów.
+**Status:** zaakceptowana  
+**Decyzja:** główny backend i harmonogram działają na Cloudflare Workers Free, metadane w D1, generowanie tekstowych pomysłów przez Workers AI. GitHub Actions pozostaje warstwą CI i planowanym środowiskiem renderowania FFmpeg.  
+**Powód:** darmowe limity Cloudflare są jawne i wystarczające dla lekkiej orkiestracji; Worker i baza zostały już utworzone i wdrożone.  
+**Ograniczenia:** Worker Free ma 10 ms CPU na zwykłe wywołanie; nie nadaje się do renderowania wideo. Workers AI ma limit 10 000 neuronów/dzień na Free. D1 ma dzienne limity odczytów i zapisów.  
+**Konsekwencje:** nie wykonywać renderowania FFmpeg ani przechowywania dużych mediów w Worker/D1. Activepieces pozostaje narzędziem pomocniczym; nie ma aktywnych przepływów ani połączeń.
 
 ## ADR-003 — oficjalne API i adaptery platformowe
 
