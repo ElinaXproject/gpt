@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:41 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:45 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -14,10 +14,10 @@
 | Plan etapów | DONE | roadmapa etapów 0–12 |
 | Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, backupu, retencji, RPO/RTO i napraw |
 | Plan testów | DONE (projekt) | macierz T01–T22 plus kontrole wdrożenia |
-| Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry; testy Publora w CI #131 |
+| Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity, retry, fresh-source gates i fact-check report; CI PASS |
 | CI GitHub | VERIFIED | workflow #116–#125: regresja, testy core, składnia Workera, harmonogram, health wdrożonego Workera oraz testy RSS PASS |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
-| Cloudflare Worker | DEPLOYED / HEALTH CHECK PENDING | poprawka atomowego claimu Cron wdrożona jako wersja `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; AI/D1 i Cron potwierdzone odczytem API; health po wdrożeniu oczekuje na CI |
+| Cloudflare Worker | DEPLOYED / VERIFIED | atomowy claim Cron + read-only `/ideas?date=YYYY-MM-DD`; aktywna wersja `77cfcc3edf90412799c81eceb2cb7bce`; health i walidacja endpointu PASS w CI #164 |
 | Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
 | Workers AI | PARTIAL | prosty JSON i FLUX image smoke test przeszły; pełny batch 3 profili oraz integracja assetów niezweryfikowane |
 | Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
@@ -59,6 +59,8 @@
 - Odczyt Cloudflare API potwierdził wersję, bindingi i harmonogram po wdrożeniu; GitHub Actions #125 potwierdził HTTP health 200 po wdrożeniu.
 - Smoke test RSS potwierdził 9/9 feedów; poprawiono walidację hostów i osobną allowlistę endpointów RSS.
 - Dodano generator research digest z oknem 72h, kontrolą domen i dat, dopasowaniem tytułów do zapytań oraz wyraźnym oznaczeniem braku źródeł. Smoke workflow #5: PASS, artefakt `autored-research-digest-smoke` utworzony.
+- Dodano read-only endpoint Worker `/ideas?date=YYYY-MM-DD`; zwraca wyłącznie pola potrzebne researchowi, nie udostępnia opisów, praw ani sekretów. Wdrożono wersję `77cfcc3edf90412799c81eceb2cb7bce`; CI #164 potwierdził health i walidację endpointu.
+- Dodano walidator raportów fact-check: niezależne domeny, bezpośrednie mapowanie dowodów do twierdzeń, allowlista, daty w oknie 72h i hash raportu. CI #168: PASS; walidator nie zastępuje semantycznej oceny prawdziwości.
 - Dodano codzienny workflow research o 09:15 czasu Europe/Warsaw z obsługą DST i retencją artefaktu 3 dni; workflow YAML został przyjęty przez GitHub Actions, pierwszy harmonogram jeszcze nie wykonał się.
 - Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni i idempotency key. CI #131: PASS. Nie wykonano żadnej publikacji.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
