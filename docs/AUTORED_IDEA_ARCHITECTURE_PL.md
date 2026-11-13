@@ -115,7 +115,7 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 
 ### YouTube — Data API
 - Upload przez `videos.insert` wymaga OAuth z zakresem `youtube.upload` lub szerszym, odpowiednim zakresem.
-- Domyślny limit API obejmuje 100 wywołań `videos.insert` dziennie w osobnym bucket; quota resetuje się o północy czasu Pacific.
+- Domyślny limit API obejmuje 100 wywołań `videos.insert` dziennie w osobnym bucket; każde wywołanie kosztuje 1 jednostkę tego bucketu. Pozostałe endpointy mają wspólny limit 10 000 jednostek/dzień. Reset o północy czasu Pacific.
 - Wymagane jest potwierdzenie, że OAuth i channel ID wskazują dokładnie kanał `@MemoryAgent-r3c`. Obecne mapowanie Metricool nie przechodzi tej kontroli.
 - Nie używać kanału o innym ID ani nie wykonywać uploadu testowego na cudzym koncie.
 
@@ -126,9 +126,26 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 - API wymaga klucza `x-publora-key`; użytkownik musi utworzyć klucz ręcznie. Nie wolno wpisywać go do repozytorium, logów ani kodu klienta.
 - Publora obsługuje idempotency key, lecz retencja deduplikacji jest ograniczona czasowo; AUTORED IDEA nadal musi prowadzić własny rejestr identyfikatorów i weryfikować status po timeout.
 - Obecne konto ma aktywne połączenie TikTok `@pieknemedia`. Workspace/Agency nie jest skonfigurowany.
-- Limit 15 publikacji miesięcznie jest niewystarczający dla codziennej publikacji na wszystkich trzech profilach. Nie zakładać większej przepustowości bez potwierdzonego darmowego limitu innego dostawcy.
+- Starter: 15 platform-postów miesięcznie łącznie dla całego konta, 3 aktywne sloty kolejki i 7-dniowy horyzont. Post kierowany do 3 platform zużywa 3 jednostki limitu. Obecny snapshot: 13 miesięcznych jednostek pozostało, 3 sloty kolejki wolne, 2 miejsca na dodatkowe konta.
+- Taki limit nie wystarcza do codziennego publikowania na trzech profilach. Publora pozostaje adapterem testowym/fallbackiem, nie głównym silnikiem produkcyjnym.
+- Pipeline przed każdym planowaniem odpytuje `GET /account-context` i blokuje publikację, gdy limit, kolejka, platforma lub horyzont nie pozwalają na zadanie.
 
 Źródła: https://docs.publora.com/getting-started ; https://docs.publora.com/endpoints/create-post ; https://docs.publora.com/guides/scheduling
+
+ 
+### Strategia główna bez limitu Publora — natywne API platform
+
+- YouTube: natywny YouTube Data API `videos.insert` — domyślnie 100 uploadów dziennie, 1 jednostka na upload w osobnym bucket; OAuth scope `youtube.upload`. To wystarcza dla pojedynczego kanału publikującego raz dziennie. Wymaga Google Cloud project, OAuth consent i autoryzacji dokładnego kanału.
+- TikTok: natywny Content Posting API Direct Post — bez opłat API, ale wymaga aplikacji developerskiej, produktu Content Posting API, zatwierdzonego scope `video.publish` i osobnej zgody każdego właściciela konta. Nieaudytowana aplikacja może publikować wyłącznie prywatnie (`SELF_ONLY`); publiczne publikowanie wymaga audytu TikTok. Nie omijać audytu ani ograniczeń konta.
+- Architektura docelowa: adapter natywny YouTube + adapter natywny TikTok dla obu kont; Publora tylko jako awaryjny provider o ograniczonej przepustowości.
+- Do czasu uzyskania OAuth i audytu TikTok system może wykonywać testy prywatne lub generować gotowe szkice, ale nie może oznaczać publicznej publikacji jako dostępnej.
+
+Źródła:
+- https://developers.google.com/youtube/data/reference/rest/v3/videos/insert
+- https://developers.google.com/youtube/data/determine_quota_cost
+- https://developers.tiktok.com/docs/en/content-posting-api-get-started
+- https://developers.tiktok.com/docs/en/content-posting-api-reference-direct-post
+- https://developers.tiktok.com/docs/en/content-sharing-guidelines
 
 ## 6. Model danych
 
