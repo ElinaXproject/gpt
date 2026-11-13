@@ -47,6 +47,8 @@ class FactCheckReport:
             reviewed = datetime.fromisoformat(self.reviewed_at.replace("Z", "+00:00"))
             if reviewed.tzinfo is None:
                 errors.append("review_timestamp_missing_timezone")
+            elif (reviewed.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds() > 300:
+                errors.append("review_timestamp_in_future")
         except (TypeError, ValueError):
             reviewed = None
             errors.append("invalid_review_timestamp")
@@ -72,6 +74,10 @@ class FactCheckReport:
         evidence_by_claim: dict[str, list[tuple[str, str]]] = {claim_id: [] for claim_id in claim_ids}
 
         for item in self.evidence:
+            if not item.title.strip():
+                errors.append("missing_evidence_title")
+            if not item.supports_claim_ids:
+                errors.append("evidence_without_claim_mapping")
             parsed_url = urlparse(item.url)
             domain = (parsed_url.hostname or "").lower().removeprefix("www.")
             if parsed_url.scheme != "https" or not domain or domain not in allowed_domains:
