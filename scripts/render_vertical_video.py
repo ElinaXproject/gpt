@@ -132,7 +132,7 @@ def render(args: argparse.Namespace) -> dict:
         raise ValueError(f"narration_duration_out_of_range:{duration:.2f}")
     segments = make_captions(script, duration, captions)
 
-    font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    font = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
     caption_filters = []
     for index, (sentence, start, end) in enumerate(segments, start=1):
         caption_file = workdir / f"caption_{index:02}.txt"
