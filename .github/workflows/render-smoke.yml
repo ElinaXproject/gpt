@@ -30,7 +30,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
       - name: Install pinned TTS dependencies
-        run: python -m pip install --disable-pip-version-check piper-tts==1.8.0
+        run: python -m pip install --disable-pip-version-check -r requirements-render.txt
+          python -m pip check
       - name: Download commercially cleared Polish voice
         run: python -m piper.download_voices pl_PL-darkman-medium --data-dir voices
       - name: Verify voice license card
