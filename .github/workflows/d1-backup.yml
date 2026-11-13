@@ -1,6 +1,8 @@
 name: AUTORED IDEA encrypted D1 backup
 
 on:
+  schedule:
+    - cron: "0 8,9 * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,21 +19,43 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Validate backup credentials
+      - name: Validate backup window and credentials
+        id: gate
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN secret"; exit 2; }
-          test -n "$BACKUP_AGE_RECIPIENT" || { echo "Missing BACKUP_AGE_RECIPIENT repository variable"; exit 2; }
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            local_hour="$(TZ=Europe/Warsaw date +%H)"
+            if [ "$local_hour" != "10" ]; then
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              echo "Outside 10:00 Europe/Warsaw backup window; skipping duplicate UTC Cron."
+              exit 0
+            fi
+          fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$BACKUP_AGE_RECIPIENT" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+              echo "::warning::Encrypted backup skipped: add CLOUDFLARE_API_TOKEN and BACKUP_AGE_RECIPIENT."
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Manual backup requires CLOUDFLARE_API_TOKEN and BACKUP_AGE_RECIPIENT."
+            exit 2
+          fi
           case "$BACKUP_AGE_RECIPIENT" in age1*) ;; *) echo "Invalid age recipient format"; exit 2 ;; esac
+          echo "ready=true" >> "$GITHUB_OUTPUT"
       - name: Install age
+        if: steps.gate.outputs.ready == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --yes age
       - name: Export remote D1 database
+        if: steps.gate.outputs.ready == 'true'
         run: |
           mkdir -p backup
           npx --yes wrangler@4.161.0 d1 export autored_idea_db --remote --skip-confirmation --output=backup/autored_idea_db.sql
           test -s backup/autored_idea_db.sql
       - name: Encrypt backup and create integrity manifest
+        if: steps.gate.outputs.ready == 'true'
         run: |
           age -r "$BACKUP_AGE_RECIPIENT" -o backup/autored_idea_db.sql.age backup/autored_idea_db.sql
           plaintext_sha="$(sha256sum backup/autored_idea_db.sql | cut -d ' ' -f 1)"
@@ -39,6 +63,7 @@ jobs:
           printf '{"created_at":"%s","database":"autored_idea_db","plaintext_sha256":"%s","encrypted_sha256":"%s","encryption":"age"}\n'             "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$plaintext_sha" "$encrypted_sha" > backup/manifest.json
           rm backup/autored_idea_db.sql
       - name: Upload encrypted backup
+        if: steps.gate.outputs.ready == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: autored-d1-backup-${{ github.run_id }}
