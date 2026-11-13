@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 import re
 import shutil
 import subprocess
@@ -31,20 +32,84 @@ def run(command: list[str]) -> str:
     return completed.stdout.strip()
 
 
-def write_gradient(path: Path) -> None:
-    """Create a lightweight PPM background using only the Python standard library."""
-    data = bytearray()
+def write_background(path: Path, theme: str = "tech") -> None:
+    """Create a themed, high-resolution motion-graphics background without stock assets."""
+    palettes = {
+        "tech": ((5, 11, 31), (17, 47, 103), (22, 125, 194)),
+        "humor": ((45, 22, 73), (177, 57, 111), (255, 166, 74)),
+        "education": ((5, 39, 55), (12, 111, 120), (76, 176, 153)),
+    }
+    if theme not in palettes:
+        raise ValueError("unknown_background_theme")
+    bottom, middle, glow_color = palettes[theme]
+    pixels = []
     for y in range(HEIGHT):
         vy = y / max(1, HEIGHT - 1)
         for x in range(WIDTH):
             vx = x / max(1, WIDTH - 1)
-            glow = max(0.0, 1.0 - math.sqrt(((vx - 0.78) / 0.72) ** 2 + ((vy - 0.18) / 0.45) ** 2))
-            r = int(7 + 10 * (1 - vy) + 10 * glow)
-            g = int(12 + 18 * (1 - vy) + 24 * glow)
-            b = int(31 + 42 * (1 - vy) + 55 * glow)
-            data.extend((min(r, 255), min(g, 255), min(b, 255)))
-    path.write_bytes(f"P6\n{WIDTH} {HEIGHT}\n255\n".encode("ascii") + data)
+            t = min(1.0, max(0.0, vy * 0.88 + 0.12))
+            base = tuple(int(bottom[i] * (1 - t) + middle[i] * t) for i in range(3))
+            glow = max(0.0, 1.0 - math.sqrt(((vx - 0.78) / 0.78) ** 2 + ((vy - 0.18) / 0.52) ** 2))
+            pixels.append(tuple(
+                min(255, int(base[i] + (glow_color[i] - base[i]) * glow * 0.30))
+                for i in range(3)
+            ))
+    image = Image.new("RGB", (WIDTH, HEIGHT))
+    image.putdata(pixels)
+    overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    rng = random.Random(20261113)
 
+    if theme == "tech":
+        for x in range(0, WIDTH, 120):
+            draw.line((x, 0, x, HEIGHT), fill=(100, 190, 255, 12), width=1)
+        for y in range(0, HEIGHT, 120):
+            draw.line((0, y, WIDTH, y), fill=(100, 190, 255, 10), width=1)
+        traces = [
+            [(70, 420), (190, 420), (190, 620), (330, 620), (330, 760)],
+            [(1000, 300), (850, 300), (850, 500), (710, 500), (710, 690)],
+            [(75, 1370), (225, 1370), (225, 1190), (370, 1190)],
+            [(1010, 1450), (870, 1450), (870, 1280), (720, 1280)],
+            [(450, 240), (450, 350), (570, 350), (570, 470)],
+            [(620, 1510), (620, 1390), (760, 1390)],
+        ]
+        for trace in traces:
+            draw.line(trace, fill=(76, 205, 255, 65), width=4, joint="curve")
+            for px, py in (trace[0], trace[-1]):
+                draw.ellipse((px-7, py-7, px+7, py+7), fill=(90, 220, 255, 120))
+        for radius in (260, 390, 520):
+            draw.ellipse((WIDTH-300-radius, 250-radius, WIDTH-300+radius, 250+radius),
+                         outline=(90, 190, 255, 20), width=3)
+    elif theme == "humor":
+        blobs = [
+            (-160, 250, 430, 820, (255, 202, 74, 55)),
+            (760, 250, 1290, 820, (255, 105, 122, 52)),
+            (80, 1190, 520, 1640, (86, 211, 220, 45)),
+            (720, 1200, 1190, 1700, (188, 115, 255, 48)),
+        ]
+        for x1, y1, x2, y2, color in blobs:
+            draw.ellipse((x1, y1, x2, y2), fill=color)
+        for _ in range(75):
+            x, y = rng.randrange(WIDTH), rng.randrange(HEIGHT)
+            radius = rng.randrange(2, 7)
+            draw.ellipse((x-radius, y-radius, x+radius, y+radius),
+                         fill=(255, 255, 255, rng.randrange(25, 75)))
+        for y in range(280, HEIGHT, 210):
+            draw.line((0, y, WIDTH, y+100), fill=(255, 255, 255, 12), width=2)
+    else:
+        for radius in (220, 340, 460, 580):
+            draw.ellipse((WIDTH//2-radius, HEIGHT//2-radius, WIDTH//2+radius, HEIGHT//2+radius),
+                         outline=(140, 245, 220, 24), width=4)
+        for x in range(70, WIDTH, 95):
+            for y in range(250, HEIGHT, 110):
+                draw.ellipse((x-2, y-2, x+2, y+2), fill=(190, 255, 240, 32))
+        graph = [(120, 1120), (270, 970), (420, 1040), (570, 800), (720, 900), (930, 650)]
+        draw.line(graph, fill=(120, 255, 218, 75), width=5, joint="curve")
+        for x, y in graph:
+            draw.ellipse((x-9, y-9, x+9, y+9), fill=(140, 255, 230, 140))
+
+    image = Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+    image.save(path, format="PNG", optimize=True)
 
 def srt_time(seconds: float) -> str:
     millis = max(0, round(seconds * 1000))
@@ -146,14 +211,14 @@ def render(args: argparse.Namespace) -> dict:
     voice_dir.mkdir(parents=True, exist_ok=True)
     narration = workdir / "narration.wav"
     captions_srt = workdir / "captions.srt"
-    background = workdir / "background.ppm"
+    background = workdir / "background.png"
 
     if args.background:
         if not args.background.is_file():
             raise FileNotFoundError(args.background)
         background = args.background.resolve()
     else:
-        write_gradient(background)
+        write_background(background, str(source.get("theme", "tech")))
 
     run([
         sys.executable, "-m", "piper", "-m", args.voice,
