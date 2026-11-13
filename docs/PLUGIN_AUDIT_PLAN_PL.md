@@ -246,3 +246,49 @@ Dokończyć A02–A04: sprawdzić pozostałe plany, połączenia i workflow; pot
 | Cotygodniowy audyt środowiska pracy | DISABLED | 2026-11-19 09:00 Europe/Warsaw | Istniejący audyt tygodniowy jest wyłączony. Nie aktywować bez osobnej zgody. |
 | Codzienna kontrola statystyk TikToka | DISABLED | 2026-11-14 10:00 Europe/Warsaw | Do sprawdzenia, czy zadanie nie dubluje Metricool lub innych raportów. |
 
+
+
+## 12. Ponowna kontrola połączeń i workflow — 2026-11-13 14:15 UTC
+
+Kontrola wykonana ponownie w trybie read-only. Nie zmieniano żadnego workflow ani publikacji.
+
+### Activepieces
+- Poprawny identyfikator projektu: `Z1qa7Ph0wSCS8sIQWfzCM`. Pierwsza próba ustawienia kontekstu po nazwie nie powiodła się; ponowiono z ID i kontekst ustawiono poprawnie.
+- Lista flow: dokładnie 1 flow; `FROZONE – generator dwóch szkiców TikTok (codziennie 09:00; bez publikacji)`, ID `xqrXQtgQMAhS2QhGDyYBI`, ENABLED, published.
+- Struktura: 12 kroków, wszystkie configured/valid. Kolejność: harmonogram → odczyt historii (limit 500) → AI tworzące 2 posty → parser JSON → obraz profilu pieknemedia → JPEG → metadata → obraz profilu ocenionona6 → JPEG → metadata → rozdzielenie rekordów → zapis do tabeli.
+- Harmonogram potwierdzony w strefie Europe/Warsaw, godz. 09:00, również w weekendy.
+- Lista połączeń OAuth Activepieces: 0. To nie blokuje obecnego flow, bo generowanie AI/obrazów używa skonfigurowanego provider Activepieces; nie ma natomiast połączeń OAuth do zewnętrznych aplikacji w tym projekcie.
+- Wniosek: obecny generator jest aktywny i poprawnie skonfigurowany na poziomie struktury. Nie jest to dowód jakości każdego wygenerowanego materiału ani publikacji — flow tylko zapisuje szkice.
+
+### Publora — odczyt konta i połączeń
+- Plan Starter, publishing/API/MCP aktywne, analytics niedostępne.
+- Limit miesięczny: 15 postów, wykorzystane 2, pozostało 13; reset 2026-12-01 UTC.
+- Kolejka: 3 aktywne zaplanowane posty maksymalnie, obecnie 0; horyzont planowania do 7 dni.
+- Limit połączeń: 3, wykorzystane 1, pozostałe 2.
+- Jedyny podłączony kanał: TikTok `@pieknemedia`; connectionStatus=active, tokenStatus=valid; ostatni udany post 2026-11-12 11:28:45 UTC; brak ostatniego błędu.
+- Ważna luka: `@ocenionona6` NIE jest podłączony do Publora w odczycie z 2026-11-13. Nie wolno zakładać, że oba profile mogą być publikowane przez Publora.
+
+### Metricool
+- Widoczna jedna marka: `RED ABSURD IDEA`, strefa Europe/Warsaw.
+- W danych marki są: Instagram `violetx3p`, Pinterest `calistoxmass`, TikTok `ocenionona6`, YouTube `UCRmmEQysOmUbs8mpZEOgtLw`.
+- To potwierdza obecność tych identyfikatorów w konfiguracji marki, ale nie potwierdza jeszcze testem uprawnień publikacji ani odczytu analityki dla każdego kanału.
+- Rozbieżność do rozstrzygnięcia: Metricool pokazuje TikTok `ocenionona6`, podczas gdy Publora ma aktywny tylko `pieknemedia`. Nie dublować publikacji; przed wyborem adaptera sprawdzić uprawnienia i dokładne profile.
+
+### vidIQ
+- Saldo sprawdzone bez zużywania kredytów: 130/150 kredytów odnawialnych; 0 kredytów bonusowych; odnowienie 2026-12-10 10:41:03 UTC.
+
+### Cloudflare
+- Odczyt `whoami` potwierdza połączenie konta. Zasoby, strefy DNS i Workers nie były jeszcze sprawdzane; status zasobów pozostaje UNKNOWN.
+
+### Statusy etapów po tej kontroli
+- A01 — DONE.
+- A02 — DOING (potwierdzone wybrane limity; pozostałe usługi nadal wymagają weryfikacji).
+- A03 — DOING (potwierdzone Activepieces, Publora, Metricool, vidIQ i tożsamość Cloudflare; pozostałe połączenia nadal do sprawdzenia).
+- A04 — DOING (zmapowano cały jedyny flow Activepieces; automatyzacje ChatGPT i pozostałe procesy trzeba jeszcze zestawić z harmonogramami i wykryć duplikacje).
+- A05–A14 — TODO.
+
+### Ryzyka wymagające rozwiązania przed zmianami
+1. Publora nie ma połączenia `@ocenionona6`; nie wolno planować dla niego publikacji tym adapterem.
+2. Activepieces nie ma OAuth connections; integracje zewnętrzne wymagają osobnego połączenia lub jawnego adaptera.
+3. Metricool i Publora mają różne zestawy profili; trzeba ustalić, który profil ma być obsługiwany przez które narzędzie, bez publikowania próbnego materiału.
+4. Błędy JSON i drugiego obrazu z poprzednich testów pozostają otwarte. Naprawa dopiero na kopii flow i po testach, nie w produkcji.
