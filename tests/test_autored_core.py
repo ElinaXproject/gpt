@@ -34,7 +34,7 @@ class AutoRedCoreTests(unittest.TestCase):
 
     def test_three_target_profiles_are_registered(self):
         self.assertEqual(
-            {"@ocenionona6", "@pieknemedia", "@MemoryAgent-r3"},
+            {"@ocenionona6", "@pieknemedia", "@MemoryAgent-r3c"},
             {profile.handle for profile in PROFILES.values()},
         )
 
