@@ -50,6 +50,7 @@ async function generateIdeas(env, localDate) {
     "Wygeneruj dokładnie trzy odrębne propozycje tematów — po jednej dla każdego profilu.",
     "Zwróć wyłącznie JSON: { \"items\": [{ \"profile_id\": string, \"topic\": string, \"hook\": string, \"format\": string, \"research_query\": string, \"editorial_note\": string }] }.",
     "Nie wymyślaj źródeł, dat, statystyk, cytatów ani faktów. Nie pisz, że research został wykonany.",
+    "Nie twórz ani nie promuj treści o niebezpiecznych działaniach, środkach odurzających, hazardzie, broni, samookaleczeniu ani treści seksualnych.",
     "Dla YouTube Memory Agent zaproponuj temat do sprawdzenia w wiarygodnych źródłach z ostatnich 24–72 godzin; jeśli nie ma świeżego wydarzenia, zaproponuj research, nie news.",
     "Każdy profil musi dostać inny temat i inny format. Język polski.",
     "Data lokalna: " + localDate,
