@@ -29,12 +29,11 @@ def run_preflight(client: Any, d1_client: Any | None = None) -> dict[str, Any]:
                     "actual_platform_id": connection.get("platformId"),
                 })
                 continue
-            check = client.test_connection(connection["platformId"])
-            healthy = check.get("status") in {"ok", "success"} or check.get("success") is True
+            healthy = connection.get("connectionStatus") == "active" and connection.get("tokenStatus") in {"valid", "active", "ok"}
             results.append({
                 "profile_id": profile_id,
                 "status": "ready" if healthy else "blocked",
-                "reason": None if healthy else "provider_test_failed",
+                "reason": None if healthy else "provider_connection_not_verified",
                 "platform_id": connection["platformId"],
                 "connection_status": connection.get("connectionStatus"),
                 "token_status": connection.get("tokenStatus"),
