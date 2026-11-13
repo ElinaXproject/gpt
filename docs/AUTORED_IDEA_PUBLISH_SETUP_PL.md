@@ -64,6 +64,17 @@ Aktualny snapshot Publora Starter: 15 platform-postów miesięcznie łącznie, 3
 - Nie wklejaj tokenów ani kluczy do rozmowy, repozytorium, issue lub logów.
 - Jeżeli regulamin platformy wymaga pełnoletniego właściciela aplikacji lub dodatkowej zgody, konfigurację wykonuje uprawniony dorosły właściciel. System nie obchodzi limitów wieku, audytu, OAuth ani weryfikacji.
 
+## 5A. Automatyczny dispatcher kolejki
+
+- Workflow `.github/workflows/publisher-dispatch.yml` sprawdza kolejkę co 15 minut i można go uruchomić ręcznie.
+- Działa tylko po dodaniu sekretu `CLOUDFLARE_API_TOKEN`; brak sekretu powoduje bezpieczne pominięcie przebiegu.
+- Workflow pobiera wyłącznie prywatny artefakt Actions po numerycznym ID, weryfikuje manifest względem D1 (content_id, profile_id, harmonogram i idempotency key), a następnie uruchamia właściwy adapter.
+- Uprawnienia workflow są ograniczone do odczytu repozytorium i artefaktów. Nie publikuje, jeśli brakuje poświadczeń providera, nie przechodzi walidacja manifestu/mediów lub nie ma praw do publikacji.
+- Ręczne uruchomienie ma opcję `dry_run`, która tylko wyświetla kwalifikujące się zadania.
+- Wymagane sekrety: `CLOUDFLARE_API_TOKEN`, `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_PIEKNEMEDIA_REFRESH_TOKEN`, `TIKTOK_OCENIONONA6_REFRESH_TOKEN`, `AUTORED_TOKEN_ENCRYPTION_KEY`, `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`. Nie wklejaj ich do rozmowy ani repozytorium.
+- Zmienne audytu `TIKTOK_APP_AUDITED` i `YOUTUBE_API_AUDITED` pozostają domyślnie false; ustawienie true jest dopuszczalne wyłącznie po rzeczywistym zatwierdzeniu odpowiedniej aplikacji przez platformę.
+- Kod i testy dispatcher: `scripts/publisher_dispatch.py`, `tests/test_publisher_dispatch.py`. Nie wykonano jeszcze produkcyjnego dispatchu, ponieważ D1 ma 0 zadań i 0 tokenów.
+
 ## 6. Bramka bezpieczeństwa
 
 ## 6. Bramka bezpieczeństwa
