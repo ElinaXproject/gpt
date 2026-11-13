@@ -58,7 +58,7 @@ flowchart TD
 | Research & Fact Check | Źródła, daty, potwierdzenie twierdzeń | każda teza faktograficzna ma źródło |
 | Content Generator | Skrypt, hook, CTA, tytuł, opis, hashtagi | walidacja długości i kompletności |
 | Media Renderer | Obraz/wideo/audio, napisy, miniatura | kodeki, rozdzielczość, proporcje, plik odtwarzalny |
-| Compliance Gate | Prawa, AI disclosure, muzyka, prywatność | brak publikacji przy niezaliczonej kontroli |
+| Compliance Gate | Prawa, AI disclosure, safety review, muzyka, prywatność | brak publikacji przy niezaliczonej kontroli |
 | Publisher Adapters | Publora/Metricool/API oficjalne | autoryzacja, status końcowy, brak duplikatu |
 | Observability | Logi, alerty, statystyki, błędy | możliwa diagnoza każdego przebiegu |
 | Recovery | Retry bez duplikatów, dead-letter queue, rollback | test odtworzenia i odzyskania stanu |
@@ -123,6 +123,7 @@ Obecne tabele Activepieces (Kalendarz treści, Biblioteka mediów, Dziennik auto
 - Strefa czasu harmonogramu: Europe/Warsaw.
 - Każdy kanał ma osobny dzienny/tygodniowy limit i licznik platformowy.
 - Muzyka: tylko katalog i licencje dopuszczone przez platformę; nie osadzać muzyki bez praw.
+- Safety review: każdy pakiet ma status pending/passed/blocked; publikacja jest zablokowana do statusu passed.
 - AI disclosure: ustawiać zgodnie z wymaganiami platformy i rodzajem treści.
 - Muzyka TikTok: dla postów zdjęciowych używać wyłącznie dozwolonego mechanizmu wyboru muzyki przez Publora (autoAddMusic=true, jeśli jest dostępny dla danego konta); dla filmów muzykę osadzać przed uploadem tylko wtedy, gdy istnieje potwierdzona licencja na użycie komercyjne i publikację na danej platformie. Nie pobierać ani nie osadzać utworów bez praw.
 
