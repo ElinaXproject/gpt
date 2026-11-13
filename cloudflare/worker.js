@@ -61,11 +61,12 @@ async function generateIdeas(env, localDate) {
       { role: "system", content: "Jesteś redaktorem planującym treści. Nie konfabuluj. Zwracaj wyłącznie wymagany JSON." },
       { role: "user", content: prompt }
     ],
-    max_tokens: 1400,
+    max_tokens: 1800,
+    response_format: { type: "json_object" },
     temperature: 0.65
   });
 
-  const raw = result?.response ?? result?.result?.response ?? result?.output_text ?? "";
+  const raw = result?.response ?? result?.choices?.[0]?.message?.content ?? result?.result?.choices?.[0]?.message?.content ?? result?.output_text ?? "";
   const parsed = extractJson(raw);
   if (!Array.isArray(parsed.items) || parsed.items.length !== 3) {
     throw new Error("ai_output_wrong_item_count");
