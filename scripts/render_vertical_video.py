@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 
@@ -50,7 +51,7 @@ def srt_time(seconds: float) -> str:
     return f"{hours:02}:{minutes:02}:{secs:02},{millis:03}"
 
 
-def make_captions(script: str, duration: float, path: Path) -> None:
+def make_captions(script: str, duration: float, path: Path) -> list[tuple[str, float, float]]:
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", script) if part.strip()]
     if not sentences:
         raise ValueError("script_has_no_caption_sentences")
@@ -59,13 +60,16 @@ def make_captions(script: str, duration: float, path: Path) -> None:
     usable = max(1.0, duration - 0.4)
     cursor = 0.0
     rows = []
+    segments = []
     for index, (sentence, weight) in enumerate(zip(sentences, weights), start=1):
         span = usable * weight / total_weight
         start = cursor
         end = min(duration, cursor + span)
         rows.append(f"{index}\n{srt_time(start)} --> {srt_time(end)}\n{sentence}\n")
+        segments.append((sentence, start, end))
         cursor = end
     path.write_text("\n".join(rows), encoding="utf-8")
+    return segments
 
 
 def probe_duration(path: Path) -> float:
@@ -126,25 +130,27 @@ def render(args: argparse.Namespace) -> dict:
     duration = probe_duration(narration)
     if duration < 5 or duration > 90:
         raise ValueError(f"narration_duration_out_of_range:{duration:.2f}")
-    make_captions(script, duration, captions)
+    segments = make_captions(script, duration, captions)
 
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    subtitle_style = (
-        "FontName=DejaVu Sans,FontSize=46,PrimaryColour=&H00FFFFFF,"
-        "OutlineColour=&H00000000,Outline=2,BorderStyle=1,Alignment=2,MarginV=380"
-    )
-    video_filter = (
-        f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,"
-        f"crop={WIDTH}:{HEIGHT},"
-        f"zoompan=z='min(zoom+0.00035,1.06)':d=1:s={WIDTH}x{HEIGHT}:fps={FPS},"
-        f"drawtext=fontfile={font}:textfile={title_file}:expansion=none:"
-        "fontcolor=white:fontsize=58:x=(w-text_w)/2:y=125:"
-        "box=1:boxcolor=black@0.32:boxborderw=26,"
-        f"subtitles={captions}:force_style='{subtitle_style}',"
-        f"drawtext=fontfile={font}:textfile={cta_file}:expansion=none:"
-        "fontcolor=white:fontsize=40:x=(w-text_w)/2:y=h-230:"
-        "box=1:boxcolor=black@0.38:boxborderw=20"
-    )
+    caption_filters = []
+    for index, (sentence, start, end) in enumerate(segments, start=1):
+        caption_file = workdir / f"caption_{index:02}.txt"
+        caption_file.write_text(textwrap.fill(sentence, width=28), encoding="utf-8")
+        caption_filters.append(
+            f"drawtext=fontfile={font}:textfile={caption_file}:expansion=none:"
+            "fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2:"
+            "box=1:boxcolor=black@0.38:boxborderw=26:line_spacing=14:"
+            f"enable='between(t\\,{start:.3f}\\,{end:.3f})'"
+        )
+    video_filter = ",".join([
+        f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase",
+        f"crop={WIDTH}:{HEIGHT}",
+        f"zoompan=z='min(zoom+0.00035,1.06)':d=1:s={WIDTH}x{HEIGHT}:fps={FPS}",
+        f"drawtext=fontfile={font}:textfile={title_file}:expansion=none:fontcolor=white:fontsize=58:x=(w-text_w)/2:y=125:box=1:boxcolor=black@0.32:boxborderw=26",
+        *caption_filters,
+        f"drawtext=fontfile={font}:textfile={cta_file}:expansion=none:fontcolor=white:fontsize=40:x=(w-text_w)/2:y=h-230:box=1:boxcolor=black@0.38:boxborderw=20"
+    ])
 
     command = [
         "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
