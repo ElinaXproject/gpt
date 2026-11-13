@@ -35,6 +35,7 @@ class WorkbenchRepositoryTests(unittest.TestCase):
             "docs/AUTORED_IDEA_DECISIONS_PL.md",
             "docs/AUTORED_IDEA_DEPLOYMENT_2026-11-13_PL.md",
             "docs/AUTORED_IDEA_RENDERER_PL.md",
+            "docs/AUTORED_IDEA_PROVIDER_AUDIT_2026-11-13_PL.md",
             "autored/README.md",
             "autored/core.py",
             "cloudflare/worker.js",
