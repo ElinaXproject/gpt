@@ -88,4 +88,4 @@ CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
 INSERT OR IGNORE INTO profiles (id, platform, handle) VALUES
   ('tiktok_ocenionona6','tiktok','@ocenionona6'),
   ('tiktok_pieknemedia','tiktok','@pieknemedia'),
-  ('youtube_memoryagent','youtube','@MemoryAgent-r3');
+  ('youtube_memoryagent','youtube','@MemoryAgent-r3c');
