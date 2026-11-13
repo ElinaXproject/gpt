@@ -11,10 +11,15 @@ from publisher_dispatch import run_dispatch
 
 
 class FakeD1:
-    def __init__(self, tiktok=None, youtube=None):
+    def __init__(self, tiktok=None, youtube=None, pending=None):
         self.tiktok = tiktok or []
         self.youtube = youtube or []
+        self.pending = pending or []
         self.failed = []
+        self.published = []
+
+    def get_pending_tiktok_jobs(self, limit=20):
+        return self.pending[:limit]
 
     def get_due_jobs(self, now, limit=10):
         return self.tiktok[:limit]
@@ -24,6 +29,9 @@ class FakeD1:
 
     def mark_job_failed(self, job_id, error_code, blocked=False):
         self.failed.append((job_id, error_code, blocked))
+
+    def mark_job_published(self, job_id, provider_post_id):
+        self.published.append((job_id, provider_post_id))
 
 
 def make_job(provider="tiktok_direct", profile="tiktok_pieknemedia"):
@@ -107,6 +115,40 @@ class PublisherDispatchTests(unittest.TestCase):
         self.assertEqual(1, result["processed"])
         self.assertEqual(1, len(called))
         self.assertEqual([], d1.failed)
+
+    def test_pending_tiktok_job_is_reconciled_as_published(self):
+        pending = {"id":"job-pending","profile_id":"tiktok_pieknemedia","platform_post_id":"publish-1"}
+        d1 = FakeD1(pending=[pending])
+        result = run_dispatch(
+            d1=d1, now_utc="2026-11-14T12:00:00Z",
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            tiktok_status_checker=lambda _job, _d1: "PUBLISH_COMPLETE"
+        )
+        self.assertEqual(1, result["reconciled"])
+        self.assertEqual([("job-pending", "publish-1")], d1.published)
+
+    def test_pending_tiktok_failure_is_marked_failed(self):
+        pending = {"id":"job-pending","profile_id":"tiktok_pieknemedia","platform_post_id":"publish-2"}
+        d1 = FakeD1(pending=[pending])
+        result = run_dispatch(
+            d1=d1, now_utc="2026-11-14T12:00:00Z",
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            tiktok_status_checker=lambda _job, _d1: "FAILED"
+        )
+        self.assertEqual(1, result["reconciled"])
+        self.assertEqual([("job-pending", "tiktok_publish_failed", False)], d1.failed)
+
+    def test_pending_tiktok_job_is_left_unchanged_while_processing(self):
+        pending = {"id":"job-pending","profile_id":"tiktok_pieknemedia","platform_post_id":"publish-3"}
+        d1 = FakeD1(pending=[pending])
+        result = run_dispatch(
+            d1=d1, now_utc="2026-11-14T12:00:00Z",
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            tiktok_status_checker=lambda _job, _d1: "PROCESSING_UPLOAD"
+        )
+        self.assertEqual(1, result["pending"])
+        self.assertEqual([], d1.failed)
+        self.assertEqual([], d1.published)
 
     def test_youtube_future_job_uses_youtube_credentials_and_runner(self):
         job=make_job("youtube_direct","youtube_memoryagent")
