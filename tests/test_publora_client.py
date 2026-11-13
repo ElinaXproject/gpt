@@ -108,6 +108,66 @@ class PubloraClientTests(unittest.TestCase):
         self.assertEqual(a, stable_idempotency_key("content-1", "profile-1", "create"))
         self.assertNotEqual(a, stable_idempotency_key("content-1", "profile-2", "create"))
 
+
+    def test_account_context_checks_plan_and_quota(self):
+        context = {
+            "success": True,
+            "context": {
+                "features": {"publishing": True, "apiAccess": True},
+                "allowedPlatforms": ["tiktok", "youtube"],
+                "quotas": {
+                    "monthlyPosts": {"remaining": 5},
+                    "scheduledPosts": {"remaining": 2},
+                    "scheduleHorizon": {"maxScheduledDate": "2026-11-20T23:59:59.999Z"}
+                }
+            }
+        }
+        client, captured = self.client(context)
+        scheduled = datetime(2026, 11, 14, 12, tzinfo=timezone.utc)
+        result = client.check_schedule_quota("tiktok", scheduled)
+        self.assertIn("quotas", result)
+        self.assertIn("scheduledTime=2026-11-14T12%3A00%3A00.000Z", captured[0].full_url)
+
+    def test_account_context_blocks_exhausted_monthly_quota(self):
+        context = {"success": True, "context": {
+            "features": {"publishing": True, "apiAccess": True},
+            "allowedPlatforms": ["tiktok"],
+            "quotas": {"monthlyPosts": {"remaining": 0}, "scheduledPosts": {"remaining": 1}, "scheduleHorizon": {}}
+        }}
+        client, _ = self.client(context)
+        with self.assertRaisesRegex(PubloraError, "monthly_post_quota_exhausted"):
+            client.check_schedule_quota("tiktok", datetime(2026, 11, 14, 12, tzinfo=timezone.utc))
+
+    def test_account_context_blocks_full_scheduled_queue(self):
+        context = {"success": True, "context": {
+            "features": {"publishing": True, "apiAccess": True},
+            "allowedPlatforms": ["tiktok"],
+            "quotas": {"monthlyPosts": {"remaining": 5}, "scheduledPosts": {"remaining": 0}, "scheduleHorizon": {}}
+        }}
+        client, _ = self.client(context)
+        with self.assertRaisesRegex(PubloraError, "scheduled_queue_full"):
+            client.check_schedule_quota("tiktok", datetime(2026, 11, 14, 12, tzinfo=timezone.utc))
+
+    def test_account_context_blocks_platform_not_allowed(self):
+        context = {"success": True, "context": {
+            "features": {"publishing": True, "apiAccess": True},
+            "allowedPlatforms": ["tiktok"],
+            "quotas": {"monthlyPosts": {"remaining": 5}, "scheduledPosts": {"remaining": 1}, "scheduleHorizon": {}}
+        }}
+        client, _ = self.client(context)
+        with self.assertRaisesRegex(PubloraError, "platform_not_available_on_plan"):
+            client.check_schedule_quota("youtube", datetime(2026, 11, 14, 12, tzinfo=timezone.utc))
+
+    def test_account_context_blocks_schedule_beyond_provider_horizon(self):
+        context = {"success": True, "context": {
+            "features": {"publishing": True, "apiAccess": True},
+            "allowedPlatforms": ["tiktok"],
+            "quotas": {"monthlyPosts": {"remaining": 5}, "scheduledPosts": {"remaining": 1}, "scheduleHorizon": {"maxScheduledDate": "2026-11-15T00:00:00Z"}}
+        }}
+        client, _ = self.client(context)
+        with self.assertRaisesRegex(PubloraError, "schedule_exceeds_provider_horizon"):
+            client.check_schedule_quota("tiktok", datetime(2026, 11, 16, 12, tzinfo=timezone.utc))
+
     def test_missing_api_key_is_rejected(self):
         with self.assertRaisesRegex(PubloraError, "missing_api_key"):
             PubloraClient(api_key="", opener=lambda *_args, **_kwargs: None)
