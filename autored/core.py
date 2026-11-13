@@ -11,6 +11,7 @@ from enum import Enum
 import hashlib
 import json
 from typing import Iterable
+from urllib.parse import urlparse
 
 
 class Platform(str, Enum):
@@ -71,6 +72,8 @@ class ContentPackage:
     ai_disclosure_required: bool = False
     ai_disclosure_set: bool = False
     safety_review_passed: bool = False
+    source_published_at: tuple[str, ...] = ()
+    fact_check_passed: bool = False
 
     def validate(self) -> list[str]:
         errors: list[str] = []
@@ -90,6 +93,32 @@ class ContentPackage:
             errors.append("unsupported_media_mime")
         if not self.rights_reference.strip():
             errors.append("missing_rights_reference")
+        if len(set(self.source_urls)) != len(self.source_urls):
+            errors.append("duplicate_source_url")
+        if any(urlparse(url).scheme != "https" or not urlparse(url).hostname for url in self.source_urls):
+            errors.append("invalid_source_url")
+
+        research_profiles = {"tiktok_ocenionona6": 1, "youtube_memoryagent": 2}
+        minimum_sources = research_profiles.get(self.profile_key, 0)
+        if len(self.source_urls) < minimum_sources:
+            errors.append("insufficient_verified_sources")
+        if minimum_sources and not self.fact_check_passed:
+            errors.append("fact_check_not_passed")
+        if minimum_sources and len(self.source_published_at) != len(self.source_urls):
+            errors.append("source_dates_mismatch")
+        if minimum_sources and len(self.source_published_at) == len(self.source_urls):
+            now = datetime.now(timezone.utc)
+            for published_at in self.source_published_at:
+                try:
+                    parsed = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+                    if parsed.tzinfo is None:
+                        errors.append("source_date_missing_timezone")
+                        continue
+                    age_seconds = (now - parsed.astimezone(timezone.utc)).total_seconds()
+                    if age_seconds < -300 or age_seconds > 72 * 60 * 60:
+                        errors.append("source_outside_72h_window")
+                except (TypeError, ValueError):
+                    errors.append("invalid_source_date")
         if self.ai_disclosure_required and not self.ai_disclosure_set:
             errors.append("missing_ai_disclosure")
         if not self.safety_review_passed:
