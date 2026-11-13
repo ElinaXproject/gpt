@@ -64,7 +64,7 @@ class D1EncryptedTokenStoreTests(unittest.TestCase):
 
     def test_invalid_encryption_key_is_rejected(self):
         with self.assertRaisesRegex(TokenVaultError, "encryption_key_must_be_32_bytes_base64"):
-            D1EncryptedTokenStore(self.d1, "too-short")
+            D1EncryptedTokenStore(self.d1, "c2hvcnQ=")
 
 
 if __name__ == "__main__":
