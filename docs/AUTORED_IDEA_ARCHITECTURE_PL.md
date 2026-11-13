@@ -90,15 +90,15 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 ### CI i produkcja mediów
 
 - **GitHub Actions:** testy regresyjne, kontrola sekretów, walidacja składni Workera i późniejszy pipeline renderowania.
-- **FFmpeg:** planowany renderer uruchamiany na runnerze GitHub Actions; nie uruchamiać FFmpeg w Cloudflare Worker (limity CPU/pamięci).
-- Renderowane pliki mają być przekazywane bezpośrednio do legalnego adaptera publikacyjnego; nie archiwizować ich w publicznym repozytorium.
+- **FFmpeg:** renderer działa na runnerze GitHub Actions; nie uruchamiać FFmpeg w Cloudflare Worker (limity CPU/pamięci).
+- Renderowane pliki są przekazywane jako prywatne artefakty GitHub Actions do zadań publikacyjnych; pobieranie ogranicza się do numerycznego ID artefaktu i waliduje ZIP, ścieżki, liczbę plików i rozmiary. Nie archiwizować mediów w publicznym repozytorium.
 - Generowanie obrazów/wideo wymaga osobnej weryfikacji darmowych limitów i licencji; nie zakładać, że darmowe AI API zapewni pełną produkcję wizualną.
 
 ### Integracje publikacyjne
 
 - TikTok: obecnie istniejący provider Publora dla `@pieknemedia` oraz Metricool dla `@ocenionona6`; limity planów muszą być odczytywane przed planowaniem. Direct Post API jest alternatywą wyłącznie po oficjalnej autoryzacji i wymaganym zatwierdzeniu aplikacji.
 - YouTube: obecne połączenie kanału w Metricool; mapowanie identyfikatora do `@MemoryAgent-r3c` wymaga potwierdzenia. Alternatywa: YouTube Data API/OAuth, po uzyskaniu uprawnień.
-- Cloudflare Worker nie ma jeszcze poświadczeń Publora, Metricool, TikTok ani YouTube. Nie ma adapterów publikacji; nie wykonuje publicznych postów.
+- Adaptery Python dla TikTok Direct Post i YouTube Data API oraz klient Publora istnieją w repozytorium i są objęte testami. Cloudflare Worker nie otrzymuje automatycznie poświadczeń z połączeń ChatGPT; natywne adaptery wymagają oddzielnych sekretów/OAuth po stronie wykonawczej. Nie wykonano publicznych publikacji.
 - Activepieces: istniejący projekt ma tabele, ale 0 aktywnych flow i 0 połączeń. Pozostaje narzędziem pomocniczym/administracyjnym, nie głównym orkiestratorem produkcyjnym. Nie uruchamiać równolegle n8n i Activepieces dla tego samego procesu.
 
 ## 5A. Zweryfikowane ograniczenia integracji publikacyjnych (2026-11-13)
@@ -146,6 +146,13 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 - https://developers.tiktok.com/docs/en/content-posting-api-get-started
 - https://developers.tiktok.com/docs/en/content-posting-api-reference-direct-post
 - https://developers.tiktok.com/docs/en/content-sharing-guidelines
+
+
+### Walidacja docelowych hostów uploadu
+
+- TikTok zwraca `upload_url` dla transferu pliku; implementacja akceptuje wyłącznie HTTPS na hoście `open-upload.tiktokapis.com`, port domyślny/443, bez userinfo i fragmentu URL. Źródło: https://developers.tiktok.com/docs/en/content-posting-api-reference-upload-video
+- YouTube zwraca `Location` sesji resumable; implementacja akceptuje wyłącznie HTTPS na `www.googleapis.com`, port domyślny/443, bez userinfo i fragmentu. To ważne, ponieważ token Bearer jest przekazywany w nagłówku żądania uploadu. Źródło: https://developers.google.com/youtube/data/guides/using_resumable_upload_protocol
+- Testy regresyjne blokują odpowiedzi z dowolnym hostem spoza allowlisty; nie wolno osłabiać tych ograniczeń do samego sprawdzenia HTTPS.
 
 ## 6. Model danych
 
