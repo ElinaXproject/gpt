@@ -98,6 +98,8 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         self.assertEqual("publish-1", result["publish_id"])
         self.assertEqual([("tiktok_pieknemedia", "refresh-2")], store.saved)
         self.assertIn("/video/init/", captured[2].full_url)
+        init_body = json.loads(captured[2].data.decode("utf-8"))
+        self.assertTrue(init_body["post_info"]["is_aigc"])
         upload_headers = {name.lower(): value for name, value in captured[3].header_items()}
         self.assertEqual("bytes 0-10/11", upload_headers["content-range"])
 
@@ -149,7 +151,9 @@ class TikTokDirectPublisherTests(unittest.TestCase):
             media.write_bytes(b"video")
             result = publisher.publish_video(
                 media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE",
-                duration_seconds=20, poll_attempts=2
+                duration_seconds=20, poll_attempts=2,
+                scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                music_embedded=True, music_license_reference="original-track-license-001"
             )
         self.assertEqual("pending", result["status"])
 
