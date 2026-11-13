@@ -8,7 +8,7 @@ Central repository for the GPT Workbench project.
 - `docs/AUTORED_IDEA_*` — architecture, roadmap, security/DR, tests, decisions, audits, deployment log and project state.
 - `autored/` — provider-neutral deterministic workflow core.
 - `cloudflare/` — Worker runtime and versioned D1 migrations.
-- `scripts/` — local TTS and FFmpeg media renderer.
+- `scripts/` — local TTS/FFmpeg renderer, RSS source audit, safe Publora API client, compliance-gated media scheduling and read-only provider preflight.
 - `requirements-render.txt` — pinned free renderer dependency.
 - `wrangler.toml` — Cloudflare Worker, D1, AI and Cron configuration.
 - `templates/` — reusable project, state, task, decision and error templates.
@@ -45,7 +45,8 @@ Central repository for the GPT Workbench project.
 8. [Media renderer and TTS](docs/AUTORED_IDEA_RENDERER_PL.md)
 9. [Provider connection and quota audit](docs/AUTORED_IDEA_PROVIDER_AUDIT_2026-11-13_PL.md)
 10. [Verified baseline audit](docs/AUTORED_IDEA_AUDIT_2026-11-13_PL.md)
-11. [Core package](autored/README.md)
+11. [Publora integration setup](docs/AUTORED_IDEA_PUBLISH_SETUP_PL.md)
+12. [Core package](autored/README.md)
 
 ### GPT Workbench
 
