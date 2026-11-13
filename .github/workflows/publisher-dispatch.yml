@@ -1,0 +1,72 @@
+name: AUTORED IDEA native publisher dispatch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List eligible jobs without downloading or publishing"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: autored-native-publisher-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch due native publication jobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+      TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+      TIKTOK_PIEKNEMEDIA_REFRESH_TOKEN: ${{ secrets.TIKTOK_PIEKNEMEDIA_REFRESH_TOKEN }}
+      TIKTOK_OCENIONONA6_REFRESH_TOKEN: ${{ secrets.TIKTOK_OCENIONONA6_REFRESH_TOKEN }}
+      AUTORED_TOKEN_ENCRYPTION_KEY: ${{ secrets.AUTORED_TOKEN_ENCRYPTION_KEY }}
+      TIKTOK_APP_AUDITED: ${{ vars.TIKTOK_APP_AUDITED }}
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+      YOUTUBE_API_AUDITED: ${{ vars.YOUTUBE_API_AUDITED }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned security dependency
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-autored.txt
+          python -m pip check
+      - name: Verify required D1 credentials
+        id: gate
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Publisher dispatch skipped: CLOUDFLARE_API_TOKEN is not configured."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Dispatch due jobs
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            python scripts/publisher_dispatch.py --limit 10 --dry-run
+          else
+            python scripts/publisher_dispatch.py --limit 10
+          fi
