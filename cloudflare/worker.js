@@ -1,5 +1,5 @@
 const TIME_ZONE = "Europe/Warsaw";
-const MODEL_ID = "@cf/zai-org/glm-4.7-flash";
+const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct";
 const TARGETS = [
   {
     id: "tiktok_pieknemedia",
@@ -65,9 +65,9 @@ async function generateIdeas(env, localDate) {
       { role: "system", content: "Jesteś redaktorem planującym treści. Nie konfabuluj. Zwracaj wyłącznie wymagany JSON." },
       { role: "user", content: prompt }
     ],
-    max_tokens: 1800,
+    max_tokens: 1200,
     response_format: { type: "json_object" },
-    temperature: 0.65
+    temperature: 0.5
   });
 
   const raw = result?.response ?? result?.choices?.[0]?.message?.content ?? result?.result?.choices?.[0]?.message?.content ?? result?.output_text ?? "";
