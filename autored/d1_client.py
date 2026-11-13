@@ -443,6 +443,29 @@ class D1Client:
         }
 
 
+    def get_content_item_for_render(self, content_id: str, profile_id: str) -> dict[str, Any]:
+        rows = self.query(
+            "SELECT id, profile_id, topic, status, title, description, hashtags_json, script, "
+            "ai_disclosure_required, ai_disclosure_set, rights_reference "
+            "FROM content_items WHERE id=?",
+            [content_id],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("content_item_not_found")
+        item = rows[0]
+        if item.get("profile_id") != profile_id:
+            raise D1Error("content_profile_mismatch")
+        if item.get("status") not in {"draft", "ready"}:
+            raise D1Error("content_not_renderable")
+        try:
+            script = json.loads(str(item.get("script") or "{}"))
+        except json.JSONDecodeError:
+            raise D1Error("content_script_invalid_json") from None
+        if not isinstance(script, dict) or not str(script.get("voiceover_text") or "").strip():
+            raise D1Error("content_voiceover_missing")
+        item["script_data"] = script
+        return item
+
     def get_publishable_content(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
         return self._validate_content_for_publish(content_id, profile_id, provider)
 
