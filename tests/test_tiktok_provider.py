@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from autored.providers.tiktok import TikTokDirectPublisher, TikTokError
@@ -69,7 +70,9 @@ class TikTokDirectPublisherTests(unittest.TestCase):
             media.write_bytes(b"video")
             with self.assertRaisesRegex(TikTokError, "unaudited_app_public_post_blocked"):
                 publisher.publish_video(
-                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20
+                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
+                    scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1), music_embedded=True,
+                    music_license_reference="original-track-license-001"
                 )
         self.assertEqual(2, len(captured))
 
@@ -87,7 +90,9 @@ class TikTokDirectPublisherTests(unittest.TestCase):
             media = Path(tmp) / "clip.mp4"
             media.write_bytes(b"video-bytes")
             result = publisher.publish_video(
-                media_path=media, title="Test caption", privacy_level="SELF_ONLY", duration_seconds=20
+                media_path=media, title="Test caption", privacy_level="SELF_ONLY", duration_seconds=20,
+                scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1), music_embedded=True,
+                music_license_reference="original-track-license-001"
             )
         self.assertEqual("published", result["status"])
         self.assertEqual("publish-1", result["publish_id"])
@@ -107,7 +112,8 @@ class TikTokDirectPublisherTests(unittest.TestCase):
             media.write_bytes(b"video")
             with self.assertRaisesRegex(TikTokError, "creator_account_mismatch"):
                 publisher.publish_video(
-                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20
+                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20, scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    music_embedded=True, music_license_reference="original-track-license-001"
                 )
         self.assertEqual(2, len(captured))
 
