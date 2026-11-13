@@ -1,6 +1,6 @@
 # AUTORED IDEA — audyt adapterów publikacyjnych
 
-**Data odczytu:** 2026-11-13 17:16 Europe/Warsaw  
+**Data odczytu:** 2026-11-13 17:35 Europe/Warsaw  
 **Typ:** read-only audit; nie tworzono ani nie publikowano postów.
 
 ## Publora
@@ -33,7 +33,7 @@ Odczytano jeden brand:
 - nazwa: `RED ABSURD IDEA`;
 - strefa: `Europe/Warsaw`;
 - połączenie TikTok `@ocenionona6`;
-- połączenie YouTube z identyfikatorem kanału widocznym w Metricool; zgodność z handle `@MemoryAgent-r3c` wymaga jeszcze potwierdzenia;
+- Metricool wskazuje YouTube channel ID `UCRmmEQysOmUbs8mpZEOgtLw`; vidIQ niezależnie potwierdza kanał `Memory Agent`, handle `@memoryagent-r3c`, channel ID `UCOE1EX9WZGDesaJNYIEhj7g`; identyfikatory są różne — obecne połączenie YouTube w Metricool NIE JEST potwierdzone jako kanał docelowy i może wskazywać inny kanał;
 - Metricool zwrócił także inne sieci, ale nie są częścią tego projektu.
 
 Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie przyjmować żadnej liczby jako faktu i nie planować wykorzystania limitu, dopóki nie zostanie potwierdzony.
@@ -44,7 +44,7 @@ Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie p
 |---|---|---|
 | TikTok `@pieknemedia` | Publora | CONNECTED |
 | TikTok `@ocenionona6` | Metricool | CONNECTED |
-| YouTube `@MemoryAgent-r3c` | Metricool | CHANNEL ID PRESENT; HANDLE NOT VERIFIED |
+| YouTube `@MemoryAgent-r3c` | Metricool | BLOCKED — ID MISMATCH: Metricool `UCRmmEQysOmUbs8mpZEOgtLw` ≠ vidIQ `UCOE1EX9WZGDesaJNYIEhj7g` |
 
 ## Blokady integracyjne
 
@@ -52,7 +52,7 @@ Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie p
 2. Nie ma jeszcze adapterów produkcyjnych z testami kontraktowymi.
 3. Nie wolno kopiować tokenów z połączeń ChatGPT do kodu ani repozytorium.
 4. Poświadczenia należy dodać wyłącznie przez bezpieczny mechanizm sekretów providera, po autoryzacji właściciela konta.
-5. YouTube musi zostać potwierdzony jako właściwy kanał `@MemoryAgent-r3c` przed pierwszym uploadem.
+5. YouTube mapping jest obecnie niezgodny: nie publikować przez Metricool, dopóki połączenie nie zostanie poprawione i ponownie zweryfikowane z ID `UCOE1EX9WZGDesaJNYIEhj7g`.
 6. Każdy adapter musi używać idempotency key i po nieznanym wyniku sprawdzać stan posta przed ponowieniem.
 
 ## Reguły publikacji
