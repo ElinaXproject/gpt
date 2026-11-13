@@ -62,3 +62,12 @@ Plan i limity publikacji Metricool nie są dostępne w odczytanych danych. Nie p
 - TikTok photo posts: Publora `autoAddMusic=true`, jeśli funkcja jest dostępna dla połączenia.
 - TikTok video posts: wymagany osadzony, licencjonowany podkład; brak potwierdzenia licencji blokuje publikację.
 - Nie obchodzić limitów providerów ani ograniczeń platform.
+
+
+## Weryfikacja źródeł RSS — 2026-11-13 17:34 Europe/Warsaw
+
+- Workflow GitHub Actions: `AUTORED IDEA RSS source smoke test`, run #4.
+- Wynik: **9/9 PASS, 0 FAIL**.
+- Sprawdzono HTTP 200, poprawność XML, obecność tytułu i linku, domenę artykułu na allowliście oraz domenę końcową po przekierowaniu.
+- Wykryta niezgodność domeny endpointu BBC (`feeds.bbci.co.uk`) została rozwiązana przez oddzielenie `feed_domains` od `allowed_domains`; domeny artykułów pozostają niezależnie walidowane.
+- Kontrola jest wyłącznie testem dostępności i struktury feedów. Nie jest jeszcze modułem researchu, fact-checkingu ani dowodem prawdziwości artykułów.
