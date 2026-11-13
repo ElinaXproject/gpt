@@ -135,6 +135,16 @@ class TikTokDirectPublisher:
     def get_creator_info(self, access_token: str) -> dict[str, Any]:
         return self._json_request(CREATOR_INFO_URL, access_token, {})
 
+    def get_publish_status(self, publish_id: str) -> str:
+        if not isinstance(publish_id, str) or not publish_id:
+            raise TikTokError("publish_id_missing")
+        access_token = self.refresh_access_token()
+        payload = self._json_request(STATUS_URL, access_token, {"publish_id": publish_id})
+        status = payload.get("status")
+        if not isinstance(status, str) or not status:
+            raise TikTokError("publish_status_missing")
+        return status
+
     def _validate_creator(self, creator: dict[str, Any], privacy_level: str, duration_seconds: int) -> None:
         username = str(creator.get("creator_username", "")).lstrip("@").casefold()
         if username != self.expected_username:
