@@ -113,6 +113,7 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
 def process_manifest(client: Any, item: dict[str, Any], job_store: Any | None = None) -> dict[str, Any]:
     profile, validated = validate_manifest(item)
     connection = client.resolve_connection(profile["platform"], profile["handle"])
+    client.check_schedule_quota(profile["platform"], validated["scheduled_time"])
 
     create_key = stable_idempotency_key(item["content_id"], item["profile_id"], "create")
     try:
