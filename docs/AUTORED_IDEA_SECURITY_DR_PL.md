@@ -18,6 +18,7 @@
 | Awaria workera | przerwany proces | kolejka, heartbeat, retry ograniczone | kill worker / resume |
 | Naruszenie praw autorskich | usunięcie treści / roszczenie | rejestr licencji i źródeł, blokada publikacji | test brakującej licencji |
 | Błędna treść faktograficzna | dezinformacja | źródła, fact-check, human gate dla ryzykownych treści | test fałszywego twierdzenia |
+| Niebezpieczna lub nieodpowiednia treść | naruszenie zasad i szkoda odbiorcy | safety review; blokada do pozytywnej oceny | test treści blokowanej |
 | Zmiana API platformy | przerwa publikacji | kontraktowe testy adapterów, monitoring błędów | test fixture / sandbox |
 | Nadmierna retencja | ekspozycja danych | minimalizacja, retencja i usuwanie | test usuwania danych |
 
