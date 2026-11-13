@@ -216,6 +216,18 @@ class D1ClientTests(unittest.TestCase):
         self.assertIn("provider='youtube_direct'", sql)
         self.assertIn("platform_post_id IS NULL", sql)
 
+    def test_mark_job_failed_updates_job_and_content_status(self):
+        client, requests = self.client([
+            self.response([{"content_id":"content-1"}], changes=0),
+            self.response([], changes=1),
+            self.response([], changes=1),
+        ])
+        client.mark_job_failed("job-test", "provider_failed", blocked=True)
+        self.assertIn("status=?", json.loads(requests[1].data.decode("utf-8"))["sql"])
+        content_update = json.loads(requests[2].data.decode("utf-8"))
+        self.assertIn("UPDATE content_items SET status=?", content_update["sql"])
+        self.assertEqual(["blocked", "content-1"], content_update["params"])
+
     def test_mark_job_publishing_requires_valid_state_transition(self):
         client, _requests = self.client([self.response([], changes=1)])
         client.mark_job_publishing("job-test")
