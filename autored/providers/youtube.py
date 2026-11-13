@@ -187,6 +187,8 @@ class YouTubeUploader:
                             raise YouTubeError("upload_resume_made_no_progress", 308)
                     else:
                         no_progress_attempts = 0
+                    if next_offset > end + 1:
+                        raise YouTubeError("upload_resume_range_exceeds_sent_bytes", 308)
                     if next_offset > size:
                         raise YouTubeError("upload_resume_range_out_of_bounds", 308)
                     offset = next_offset
