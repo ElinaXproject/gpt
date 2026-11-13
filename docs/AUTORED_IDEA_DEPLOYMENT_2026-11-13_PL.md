@@ -19,7 +19,7 @@
 
 ## Zawartość i zachowanie
 
-- D1 zawiera profile `@ocenionona6`, `@pieknemedia`, `@MemoryAgent-r3`.
+- D1 zawiera profile `@ocenionona6`, `@pieknemedia`, `@MemoryAgent-r3c`.
 - Potwierdzono tabele aplikacyjne: `profiles`, `content_items`, `daily_runs`, `events`, `publication_jobs`, `quota_ledger`.
 - Potwierdzono kolumnę `daily_run_date` i unikalny indeks `idx_content_daily_profile`.
 - Worker ma handlery `fetch` i `scheduled`.
