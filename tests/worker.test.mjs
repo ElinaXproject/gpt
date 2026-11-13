@@ -236,3 +236,13 @@ test("ideas endpoint returns 404 when daily run has no completed ideas", async (
   );
   assert.equal(response.status, 404);
 });
+
+test("ideas endpoint rejects impossible calendar dates", async () => {
+  const fixture = createEnv();
+  const response = await worker.fetch(
+    new Request("https://autored-idea-api.frozone-social.workers.dev/ideas?date=2026-02-30"),
+    fixture.env
+  );
+  assert.equal(response.status, 400);
+  assert.equal(fixture.statements.length, 0);
+});
