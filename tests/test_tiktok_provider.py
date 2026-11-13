@@ -135,10 +135,7 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             media = Path(tmp) / "clip.mp4"
             media.write_bytes(b"0123456789012345678901234")
-            with patch("autored.providers.tiktok.MIN_CHUNK_SIZE", 5), \\
-                 patch("autored.providers.tiktok.CHUNK_SIZE", 10), \\
-                 patch("autored.providers.tiktok.MAX_CHUNK_SIZE", 20), \\
-                 patch("autored.providers.tiktok.MAX_FINAL_CHUNK_SIZE", 30):
+            with patch("autored.providers.tiktok.MIN_CHUNK_SIZE", 5), patch("autored.providers.tiktok.CHUNK_SIZE", 10), patch("autored.providers.tiktok.MAX_CHUNK_SIZE", 20), patch("autored.providers.tiktok.MAX_FINAL_CHUNK_SIZE", 30):
                 result = publisher.publish_video(
                     media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
                     scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
