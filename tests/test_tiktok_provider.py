@@ -132,9 +132,40 @@ class TikTokDirectPublisherTests(unittest.TestCase):
             media = Path(tmp) / "clip.mp4"
             media.write_bytes(b"video")
             result = publisher.publish_video(
-                media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20
+                media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
+                scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                music_embedded=True, music_license_reference="original-track-license-001"
             )
         self.assertEqual("published", result["status"])
+
+
+    def test_future_scheduled_time_blocks_early_publish(self):
+        publisher, _ = self.publisher([
+            FakeResponse({"access_token": "access", "refresh_token": "refresh-2"}),
+        ], audited=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "clip.mp4"
+            media.write_bytes(b"video")
+            with self.assertRaisesRegex(TikTokError, "publication_not_due"):
+                publisher.publish_video(
+                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
+                    scheduled_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                    music_embedded=True, music_license_reference="original-track-license-001"
+                )
+
+    def test_missing_licensed_embedded_audio_blocks_publish(self):
+        publisher, _ = self.publisher([
+            FakeResponse({"access_token": "access", "refresh_token": "refresh-2"}),
+        ], audited=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "clip.mp4"
+            media.write_bytes(b"video")
+            with self.assertRaisesRegex(TikTokError, "licensed_embedded_music_required"):
+                publisher.publish_video(
+                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
+                    scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    music_embedded=False, music_license_reference=""
+                )
 
     def test_pending_publish_is_not_reported_as_complete(self):
         responses = [
