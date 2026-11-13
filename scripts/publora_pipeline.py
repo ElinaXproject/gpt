@@ -66,8 +66,9 @@ def validate_manifest(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, A
         settings = {"tiktok": {"aiGenerated": item["ai_generated"]}}
         if mime.startswith("image/"):
             settings["tiktok"]["autoAddMusic"] = True
-        elif item.get("music_required") and not item.get("music_embedded"):
-            raise PubloraError("tiktok_video_music_missing")
+        else:
+            if not item.get("music_license_reference") or not item.get("music_embedded"):
+                raise PubloraError("tiktok_video_music_missing")
     else:
         title = item.get("title")
         privacy = item.get("privacy")
