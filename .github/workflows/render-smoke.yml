@@ -1,0 +1,55 @@
+name: AUTORED IDEA render smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/render_vertical_video.py"
+      - "scripts/smoke_input.json"
+      - "requirements-render.txt"
+      - ".github/workflows/render-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-smoke:
+    name: Polish TTS and vertical video validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Install pinned TTS dependencies
+        run: python -m pip install --disable-pip-version-check piper-tts==1.8.0
+      - name: Download commercially cleared Polish voice
+        run: python -m piper.download_voices pl_PL-darkman-medium --data-dir voices
+      - name: Verify voice license card
+        run: |
+          find voices -name MODEL_CARD -print -exec cat {} \;
+      - name: Render smoke video
+        run: |
+          python scripts/render_vertical_video.py \
+            --input scripts/smoke_input.json \
+            --output output/autored-smoke.mp4 \
+            --voice pl_PL-darkman-medium \
+            --voice-dir voices
+      - name: Validate output with FFprobe
+        run: |
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height,sample_rate -of json output/autored-smoke.mp4
+          test -s output/autored-smoke.mp4
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: autored-render-smoke
+          path: output/autored-smoke.mp4
+          retention-days: 7
