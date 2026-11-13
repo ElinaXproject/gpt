@@ -209,8 +209,17 @@ class YouTubeUploader:
             raise YouTubeError("video_id_missing")
         uploaded_status = uploaded.get("status", {})
         actual_publish_at = uploaded_status.get("publishAt")
-        expected_publish_at = scheduled.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-        if uploaded_status.get("privacyStatus") != "private" or actual_publish_at != expected_publish_at:
+        expected_publish_at = scheduled.astimezone(timezone.utc)
+        try:
+            parsed_publish_at = datetime.fromisoformat(str(actual_publish_at).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            parsed_publish_at = None
+        if (
+            uploaded_status.get("privacyStatus") != "private"
+            or parsed_publish_at is None
+            or parsed_publish_at.tzinfo is None
+            or abs((parsed_publish_at.astimezone(timezone.utc) - expected_publish_at).total_seconds()) > 1
+        ):
             raise YouTubeError("uploaded_schedule_requires_reconciliation")
         return {
             "status": "scheduled",
