@@ -1,0 +1,15 @@
+name = "autored-idea-api"
+main = "cloudflare/worker.js"
+compatibility_date = "2026-11-13"
+workers_dev = true
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "autored_idea_db"
+database_id = "5162eab4-2364-4481-95c1-50fdc3070d3e"
+
+[triggers]
+crons = ["0 7,8 * * *"]
