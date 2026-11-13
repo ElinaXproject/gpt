@@ -223,7 +223,7 @@ class TikTokDirectPublisher:
             parsed.hostname
             and (
                 parsed.hostname == "open-upload.tiktokapis.com"
-                or re.fullmatch(r"upload(?:\\.[a-z0-9-]+)?\\.tiktokapis\\.com", parsed.hostname)
+                or re.fullmatch(r"upload(?:\.[a-z0-9-]+)?\.tiktokapis\.com", parsed.hostname)
             )
         )
         if (
