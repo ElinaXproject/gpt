@@ -9,7 +9,7 @@
 System ma przygotowywać i publikować materiały na:
 - TikTok: `@ocenionona6`
 - TikTok: `@pieknemedia`
-- YouTube: `@MemoryAgent-r3`
+- YouTube: `@MemoryAgent-r3c`
 
 Zakres treści: krótkie filmy, YouTube Shorts, dłuższe filmy YouTube, zdjęcia/posty, tytuły, opisy, hashtagi, tagi, miniatury, oznaczenia treści AI, prawa do mediów, harmonogram i raport wyników.
 
@@ -97,7 +97,7 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 ### Integracje publikacyjne
 
 - TikTok: obecnie istniejący provider Publora dla `@pieknemedia` oraz Metricool dla `@ocenionona6`; limity planów muszą być odczytywane przed planowaniem. Direct Post API jest alternatywą wyłącznie po oficjalnej autoryzacji i wymaganym zatwierdzeniu aplikacji.
-- YouTube: obecne połączenie kanału w Metricool; mapowanie identyfikatora do `@MemoryAgent-r3` wymaga potwierdzenia. Alternatywa: YouTube Data API/OAuth, po uzyskaniu uprawnień.
+- YouTube: obecne połączenie kanału w Metricool; mapowanie identyfikatora do `@MemoryAgent-r3c` wymaga potwierdzenia. Alternatywa: YouTube Data API/OAuth, po uzyskaniu uprawnień.
 - Cloudflare Worker nie ma jeszcze poświadczeń Publora, Metricool, TikTok ani YouTube. Nie ma adapterów publikacji; nie wykonuje publicznych postów.
 - Activepieces: istniejący projekt ma tabele, ale 0 aktywnych flow i 0 połączeń. Pozostaje narzędziem pomocniczym/administracyjnym, nie głównym orkiestratorem produkcyjnym. Nie uruchamiać równolegle n8n i Activepieces dla tego samego procesu.
 
@@ -119,7 +119,7 @@ Obecne tabele Activepieces (Kalendarz treści, Biblioteka mediów, Dziennik auto
 
 - `@pieknemedia`: odrębny styl i kalendarz; obecne połączenie Publora.
 - `@ocenionona6`: treści bardziej merytoryczne; obecne połączenie TikTok w Metricool.
-- `@MemoryAgent-r3`: kanał YouTube; treści i metadane w modelu YouTube, nie kopiować automatycznie opisów TikTok.
+- `@MemoryAgent-r3c`: kanał YouTube; treści i metadane w modelu YouTube, nie kopiować automatycznie opisów TikTok.
 - Strefa czasu harmonogramu: Europe/Warsaw.
 - Każdy kanał ma osobny dzienny/tygodniowy limit i licznik platformowy.
 - Muzyka: tylko katalog i licencje dopuszczone przez platformę; nie osadzać muzyki bez praw.
