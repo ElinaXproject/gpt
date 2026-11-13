@@ -6,8 +6,8 @@ Unaudited apps are restricted to SELF_ONLY; public posting is hard-blocked.
 from __future__ import annotations
 
 import json
-import math
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -21,7 +21,11 @@ TIKTOK_TOKEN_URL = TIKTOK_API + "/v2/oauth/token/"
 CREATOR_INFO_URL = TIKTOK_API + "/v2/post/publish/creator_info/query/"
 VIDEO_INIT_URL = TIKTOK_API + "/v2/post/publish/video/init/"
 STATUS_URL = TIKTOK_API + "/v2/post/publish/status/fetch/"
+MIN_CHUNK_SIZE = 5 * 1024 * 1024
 CHUNK_SIZE = 10 * 1024 * 1024
+MAX_CHUNK_SIZE = 64 * 1024 * 1024
+MAX_FINAL_CHUNK_SIZE = 128 * 1024 * 1024
+MAX_VIDEO_SIZE = 4 * 1024 * 1024 * 1024
 
 
 class TokenStore(Protocol):
@@ -163,11 +167,11 @@ class TikTokDirectPublisher:
         if not media_path.is_file():
             raise TikTokError("media_file_missing")
         size = media_path.stat().st_size
-        if size < 1 or size > 287 * 1024 * 1024:
+        if size < 1 or size > MAX_VIDEO_SIZE:
             raise TikTokError("media_size_out_of_bounds")
         if not isinstance(title, str) or not title.strip() or len(title) > 2200:
             raise TikTokError("invalid_caption")
-        if not isinstance(duration_seconds, int) or duration_seconds < 1:
+        if not isinstance(duration_seconds, int) or duration_seconds < 1 or duration_seconds > 600:
             raise TikTokError("invalid_duration")
         if not hasattr(scheduled_at, "tzinfo") or scheduled_at.tzinfo is None:
             raise TikTokError("scheduled_time_must_be_timezone_aware")
@@ -180,8 +184,20 @@ class TikTokDirectPublisher:
         creator = self.get_creator_info(access_token)
         self._validate_creator(creator, privacy_level, duration_seconds)
 
-        chunk_size = min(CHUNK_SIZE, size)
-        total_chunks = math.ceil(size / chunk_size)
+        if size <= MAX_CHUNK_SIZE:
+            chunk_size = size
+            total_chunks = 1
+        else:
+            chunk_size = CHUNK_SIZE
+            total_chunks = size // chunk_size
+            final_chunk_size = size - chunk_size * (total_chunks - 1)
+            if (
+                total_chunks < 2
+                or total_chunks > 1000
+                or final_chunk_size < MIN_CHUNK_SIZE
+                or final_chunk_size > MAX_FINAL_CHUNK_SIZE
+            ):
+                raise TikTokError("invalid_chunk_plan")
         init_data = self._json_request(VIDEO_INIT_URL, access_token, {
             "post_info": {
                 "title": title,
@@ -203,9 +219,16 @@ class TikTokDirectPublisher:
         if not isinstance(publish_id, str) or not publish_id or not isinstance(upload_url, str):
             raise TikTokError("upload_session_missing")
         parsed = urllib.parse.urlparse(upload_url)
+        allowed_upload_host = bool(
+            parsed.hostname
+            and (
+                parsed.hostname == "open-upload.tiktokapis.com"
+                or re.fullmatch(r"upload(?:\\.[a-z0-9-]+)?\\.tiktokapis\\.com", parsed.hostname)
+            )
+        )
         if (
             parsed.scheme != "https"
-            or parsed.hostname != "open-upload.tiktokapis.com"
+            or not allowed_upload_host
             or parsed.username
             or parsed.password
             or parsed.port not in (None, 443)
@@ -215,9 +238,10 @@ class TikTokDirectPublisher:
 
         with media_path.open("rb") as media:
             start = 0
-            while start < size:
-                chunk = media.read(chunk_size)
-                if not chunk:
+            for chunk_index in range(total_chunks):
+                current_chunk_size = size - start if chunk_index == total_chunks - 1 else chunk_size
+                chunk = media.read(current_chunk_size)
+                if len(chunk) != current_chunk_size:
                     raise TikTokError("media_read_failed")
                 end = start + len(chunk) - 1
                 request = urllib.request.Request(
@@ -233,9 +257,12 @@ class TikTokDirectPublisher:
                 with self._open(request, timeout=180) as response:
                     status = getattr(response, "status", 200)
                     response.read()
-                if status not in {200, 201, 206}:
-                    raise TikTokError("chunk_upload_failed", status)
+                expected_status = 201 if chunk_index == total_chunks - 1 else 206
+                if status != expected_status:
+                    raise TikTokError("chunk_upload_unexpected_status", status)
                 start = end + 1
+            if start != size:
+                raise TikTokError("chunk_upload_incomplete")
 
         for attempt in range(poll_attempts):
             status_data = self._json_request(STATUS_URL, access_token, {"publish_id": publish_id})
