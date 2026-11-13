@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from autored.d1_client import D1Client, D1Error
-from autored.media_validation import MediaValidationError, validate_tiktok_video
+from autored.media_validation import MediaValidationError, sha256_file, validate_tiktok_video
 from autored.providers.tiktok import TikTokDirectPublisher, TikTokError
 from autored.token_vault import D1EncryptedTokenStore, TokenVaultError
 
@@ -58,7 +58,7 @@ def validate_media_against_d1(d1: D1Client, manifest: dict[str, Any], media_path
     if len(rows) != 1:
         raise D1Error("content_media_record_not_found")
     row = rows[0]
-    digest = hashlib.sha256(media_path.read_bytes()).hexdigest()
+    digest = sha256_file(media_path)
     size = media_path.stat().st_size
     mime = mimetypes.guess_type(media_path.name)[0] or "application/octet-stream"
     if digest != row.get("media_sha256") or digest != manifest["media_sha256"]:
