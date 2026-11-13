@@ -45,7 +45,24 @@ def parse_date(value: str):
         return None
 
 
+def domain_allowed(host: str, allowed_domains: list[str]) -> bool:
+    host = (host or "").lower().removeprefix("www.").rstrip(".")
+    return bool(host) and any(
+        host == domain.lower().removeprefix("www.") or
+        host.endswith("." + domain.lower().removeprefix("www."))
+        for domain in allowed_domains
+    )
+
+
 def inspect_feed(feed: dict) -> dict:
+    configured_host = urlparse(feed["url"]).hostname or ""
+    if urlparse(feed["url"]).scheme != "https" or not domain_allowed(configured_host, feed["allowed_domains"]):
+        return {
+            "id": feed["id"],
+            "name": feed["name"],
+            "status": "FAIL",
+            "error": "feed_url_not_https_or_host_not_allowlisted",
+        }
     request = urllib.request.Request(
         feed["url"],
         headers={"User-Agent": "AUTORED-IDEA-RSS-Audit/1.0 (+https://github.com/ElinaXproject/gpt)"},
@@ -53,6 +70,14 @@ def inspect_feed(feed: dict) -> dict:
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
             status = response.status
+            final_host = urlparse(response.geturl()).hostname or ""
+            if not domain_allowed(final_host, feed["allowed_domains"]):
+                return {
+                    "id": feed["id"],
+                    "name": feed["name"],
+                    "status": "FAIL",
+                    "error": "redirected_to_non_allowlisted_host",
+                }
             body = response.read(2_000_000)
         root = ET.fromstring(body)
         items = []
@@ -64,7 +89,7 @@ def inspect_feed(feed: dict) -> dict:
             published = child_text(node, {"pubdate", "published", "updated", "date"})
             domain = urlparse(link).hostname or ""
             domain = domain.lower().removeprefix("www.")
-            allowed = any(domain == d or domain.endswith("." + d) for d in feed["allowed_domains"])
+            allowed = domain_allowed(domain, feed["allowed_domains"])
             items.append({
                 "title_present": bool(title),
                 "link_present": bool(link),
