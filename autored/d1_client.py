@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import os
+import re
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -147,6 +148,53 @@ class D1Client:
             raise D1Error("statement_failed")
         return first
 
+    def attach_media_metadata(
+        self,
+        content_id: str,
+        profile_id: str,
+        media_mime: str,
+        media_bytes: int,
+        media_sha256: str,
+        music_embedded: bool = False,
+        music_license_reference: str = "",
+    ) -> None:
+        if media_mime != "video/mp4":
+            raise D1Error("media_mime_invalid")
+        if not isinstance(media_bytes, int) or not 1 <= media_bytes <= 300 * 1024 * 1024:
+            raise D1Error("media_size_invalid")
+        if not re.fullmatch(r"[a-f0-9]{64}", str(media_sha256 or "")):
+            raise D1Error("media_sha256_invalid")
+        if profile_id.startswith("tiktok_") and (music_embedded is not True or not music_license_reference.strip()):
+            raise D1Error("licensed_embedded_music_required")
+        rows = self.query(
+            "SELECT profile_id, status FROM content_items WHERE id=?",
+            [content_id],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("content_item_not_found")
+        if rows[0].get("profile_id") != profile_id:
+            raise D1Error("content_profile_mismatch")
+        result = self.query(
+            "UPDATE content_items SET media_mime=?, media_bytes=?, media_sha256=?, "
+            "music_embedded=?, music_license_reference=?, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND profile_id=? AND status IN ('draft','ready')",
+            [
+                media_mime, media_bytes, media_sha256, 1 if music_embedded else 0,
+                music_license_reference, content_id, profile_id,
+            ],
+        )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("media_metadata_persist_rejected")
+        self.query(
+            "INSERT OR IGNORE INTO events (id, event_type, profile_id, content_id, detail_json) "
+            "VALUES (?, 'media_attached', ?, ?, ?)",
+            [
+                "event_media_" + hashlib.sha256((content_id + media_sha256).encode("utf-8")).hexdigest(),
+                profile_id, content_id,
+                json.dumps({"media_mime": media_mime, "media_bytes": media_bytes, "media_sha256": media_sha256}, ensure_ascii=False),
+            ],
+        )
+
     def record_safety_review(
         self,
         content_id: str,
@@ -270,7 +318,8 @@ class D1Client:
             "SELECT id, profile_id, status, safety_review_status, safety_review_reference, safety_review_report_json, rights_reference, "
             "ai_disclosure_required, ai_disclosure_set, fact_check_passed, fact_check_reference, "
             "fact_check_report_json, source_urls_json, source_published_at_json, "
-            "music_embedded, music_license_reference FROM content_items WHERE id = ?",
+            "music_embedded, music_license_reference, media_mime, media_bytes, media_sha256 "
+            "FROM content_items WHERE id = ?",
             [content_id],
         ).get("results", [])
         if len(row) != 1:
@@ -317,6 +366,13 @@ class D1Client:
                 raise D1Error("fact_check_source_urls_mismatch")
             if stored_dates != [source.published_at for source in report.evidence]:
                 raise D1Error("fact_check_source_dates_mismatch")
+        if provider in {"tiktok_direct", "youtube_direct"}:
+            if item.get("media_mime") != "video/mp4":
+                raise D1Error("media_mime_invalid")
+            if not isinstance(item.get("media_bytes"), int) or not 1 <= item["media_bytes"] <= 300 * 1024 * 1024:
+                raise D1Error("media_size_invalid")
+            if not re.fullmatch(r"[a-f0-9]{64}", str(item.get("media_sha256") or "")):
+                raise D1Error("media_sha256_invalid")
         if provider == "tiktok_direct":
             if item.get("music_embedded") != 1 or not str(item.get("music_license_reference") or "").strip():
                 raise D1Error("licensed_embedded_music_required")
@@ -393,6 +449,8 @@ class D1Client:
             raise D1Error("unsupported_native_provider")
         if not idempotency_key:
             raise D1Error("missing_idempotency_key")
+        if not re.fullmatch(r"[0-9]+", str(media_artifact_id or "")):
+            raise D1Error("media_artifact_id_invalid")
         self._validate_content_for_publish(content_id, profile_id, provider)
         try:
             parsed_schedule = datetime.fromisoformat(scheduled_at.replace("Z", "+00:00"))
