@@ -34,10 +34,15 @@ class WorkbenchRepositoryTests(unittest.TestCase):
             "docs/AUTORED_IDEA_STATE_PL.md",
             "docs/AUTORED_IDEA_DECISIONS_PL.md",
             "docs/AUTORED_IDEA_DEPLOYMENT_2026-11-13_PL.md",
+            "docs/AUTORED_IDEA_RENDERER_PL.md",
             "autored/README.md",
             "autored/core.py",
             "cloudflare/worker.js",
             "cloudflare/migrations/0001_initial.sql",
+            "scripts/render_vertical_video.py",
+            "scripts/smoke_input.json",
+            "requirements-render.txt",
+            ".github/workflows/render-smoke.yml",
             "wrangler.toml",
         )
         for path in required:
@@ -173,6 +178,15 @@ class WorkbenchRepositoryTests(unittest.TestCase):
         self.assertIn('database_name = "autored_idea_db"', config)
         self.assertIn('binding = "AI"', config)
         self.assertIn('crons = ["0 7,8 * * *"]', config)
+
+    def test_renderer_uses_commercially_cleared_polish_voice(self):
+        renderer = self.read("scripts/render_vertical_video.py")
+        self.assertIn('VOICE = "pl_PL-darkman-medium"', renderer)
+        self.assertIn("music_license_reference_required", renderer)
+        self.assertIn("licensed_music_required", renderer)
+        self.assertIn('"libx264"', renderer)
+        self.assertIn('"aac"', renderer)
+        self.assertIn('"48000"', renderer)
 
 
 if __name__ == "__main__":
