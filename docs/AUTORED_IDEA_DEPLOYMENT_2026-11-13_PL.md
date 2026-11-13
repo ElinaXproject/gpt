@@ -8,7 +8,7 @@
 | Zasób | Wartość | Potwierdzenie |
 |---|---|---|
 | Worker | `autored-idea-api` | Cloudflare API: upload/deployment success |
-| Aktywna wersja | `64edb5a1-9496-404a-ac52-81c256f8a9db` | deployment list: 100% traffic |
+| Aktywna wersja | `14de2dea-9949-47b2-b5b9-eddd1382fafc` | deployment list: 100% traffic |
 | D1 database | `autored_idea_db` | utworzona, EU jurisdiction, primary region EEUR |
 | D1 database ID | `5162eab4-2364-4481-95c1-50fdc3070d3e` | Cloudflare API |
 | AI binding | `AI` | Worker settings potwierdza binding type ai |
@@ -32,6 +32,8 @@
 
 ## Wyniki kontroli
 
+**Najnowszy deployment:** `1790469c-0976-42ce-b285-00d97555e48c`, wersja `14de2dea-9949-47b2-b5b9-eddd1382fafc`, 100% ruchu. Worker zawiera ograniczenia bezpieczeństwa treści, wymuszenie JSON i deterministyczne identyfikatory zadań.
+
 | Kontrola | Status | Uwagi |
 |---|---|---|
 | Worker upload | PASS | Cloudflare przyjął moduł i aktywował deployment |
@@ -39,9 +41,10 @@
 | Cron schedule | PASS | schedule widoczny w API |
 | workers.dev enabled | PASS | ustawienie potwierdzone |
 | D1 profile rows | PASS | dokładnie trzy oczekiwane profile |
-| D1 schema | PASS | tabele, kolumny i indeks sprawdzone przez SQL |
+| D1 schema | PASS | tabele, kolumny, indeksy oraz safety_review_status sprawdzone przez SQL |
 | Workers AI JSON smoke test | PASS | prosty JSON; nie jest to jeszcze pełny test trzech pomysłów |
-| Worker HTTP /health | NOT VERIFIED | zewnętrzny odczyt endpointu nie został potwierdzony w tym środowisku |
+| Workers AI image smoke test | PASS | FLUX 1 Schnell zwrócił obraz Base64, ok. 356 KB; brak integracji z rendererem |
+| Worker HTTP /health | PASS | GitHub Actions curl do endpointu zwrócił 200 i status ok |
 | Pierwszy Cron run | NOT RUN | zaplanowany na następne lokalne 09:00 |
 | Trzy pomysły zapisane w D1 | NOT RUN | oczekuje na pierwszy przebieg Cron |
 | Research i weryfikacja źródeł | NOT RUN | osobny etap |
@@ -55,7 +58,7 @@
 - Nie utworzono KV ani R2; duże pliki mediów nie trafiają do D1.
 - Workers AI Free ma limit 10 000 neuronów/dzień. Po przekroczeniu darmowego limitu na Free kolejne wywołania mają być blokowane, nie płatne.
 - Worker nie ma sekretów platform publikacyjnych.
-- Health endpoint nie zwraca danych treści ani sekretów.
+- Health endpoint nie zwraca danych treści ani sekretów. Test HTTP /health przechodzi w GitHub Actions.
 - Logi mają włączone maskowanie zapytań? Nie ustawiono osobnej reguły redakcji; przed dodaniem tokenów trzeba skonfigurować maskowanie i przetestować brak sekretów w logach.
 
 ## Ograniczenia
