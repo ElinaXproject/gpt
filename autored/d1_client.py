@@ -264,8 +264,21 @@ class D1Client:
             raise D1Error("invalid_due_job_limit")
         return self.query(
             "SELECT id, content_id, profile_id, scheduled_at, idempotency_key, provider, media_artifact_id, status "
-            "FROM publication_jobs WHERE status IN ('planned','ready','retry_wait') AND scheduled_at<=? "
-            "AND (provider!='youtube_direct' OR platform_post_id IS NULL) "
+            "FROM publication_jobs WHERE provider='tiktok_direct' AND status IN ('planned','ready','retry_wait') AND scheduled_at<=? "
             "ORDER BY scheduled_at LIMIT ?",
             [now_utc, limit],
         ).get("results", [])
+
+
+    def get_youtube_jobs_to_schedule(self, now_utc: str, horizon_hours: int = 168, limit: int = 20) -> list[dict[str, Any]]:
+        if not 1 <= limit <= 100 or not 1 <= horizon_hours <= 168:
+            raise D1Error("invalid_youtube_schedule_query")
+        rows = self.query(
+            "SELECT id, content_id, profile_id, scheduled_at, idempotency_key, provider, media_artifact_id, status "
+            "FROM publication_jobs WHERE provider='youtube_direct' AND status IN ('planned','ready','retry_wait') "
+            "AND platform_post_id IS NULL AND scheduled_at>? "
+            "AND scheduled_at<=datetime(?, '+' || ? || ' hours') "
+            "ORDER BY scheduled_at LIMIT ?",
+            [now_utc, now_utc, horizon_hours, limit],
+        ).get("results", [])
+        return rows
