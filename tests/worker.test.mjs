@@ -57,6 +57,12 @@ function createEnv(options = {}) {
           }
           return null;
         },
+        async all() {
+          if (sql.includes("SELECT c.profile_id, c.topic, c.title, e.detail_json")) {
+            return { results: options.ideaRows ?? [] };
+          }
+          return { results: [] };
+        },
         async run() {
           statements.push({ sql, params });
           if (sql.includes("UPDATE daily_runs SET status='failed', error_code='stale_run_recovered'")) {
@@ -180,4 +186,53 @@ test("scheduled handler reclaims a stale lease before generating", async () => {
   assert.equal(fixture.aiCalls, 1);
   assert.equal(fixture.state.status, "succeeded");
   assert.ok(fixture.statements.some(item => item.sql.includes("stale_run_recovered")));
+});
+
+
+test("ideas endpoint returns only completed public-safe daily idea fields", async () => {
+  const fixture = createEnv({
+    ideaRows: [
+      {
+        profile_id: "youtube_memoryagent",
+        topic: "Nowości AI",
+        title: "Co zmienia się w AI?",
+        detail_json: JSON.stringify({
+          theme: "tech",
+          format: "short",
+          research_query: "najnowsze wiadomości AI",
+          editorial_note: "wymagane źródła"
+        })
+      }
+    ]
+  });
+  const response = await worker.fetch(
+    new Request("https://autored-idea-api.frozone-social.workers.dev/ideas?date=2026-11-13"),
+    fixture.env
+  );
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.items.length, 1);
+  assert.equal(body.items[0].profile_id, "youtube_memoryagent");
+  assert.equal(body.items[0].research_query, "najnowsze wiadomości AI");
+  assert.equal("rights_reference" in body.items[0], false);
+  assert.equal("description" in body.items[0], false);
+});
+
+test("ideas endpoint rejects invalid date formats", async () => {
+  const fixture = createEnv();
+  const response = await worker.fetch(
+    new Request("https://autored-idea-api.frozone-social.workers.dev/ideas?date=2026-13-40"),
+    fixture.env
+  );
+  assert.equal(response.status, 400);
+  assert.equal(fixture.statements.length, 0);
+});
+
+test("ideas endpoint returns 404 when daily run has no completed ideas", async () => {
+  const fixture = createEnv({ ideaRows: [] });
+  const response = await worker.fetch(
+    new Request("https://autored-idea-api.frozone-social.workers.dev/ideas?date=2026-11-13"),
+    fixture.env
+  );
+  assert.equal(response.status, 404);
 });
