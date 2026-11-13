@@ -58,7 +58,7 @@ function createEnv(options = {}) {
           return null;
         },
         async all() {
-          if (sql.includes("SELECT c.profile_id, c.topic, c.title, e.detail_json")) {
+          if (sql.includes("SELECT c.id, c.profile_id, c.topic, c.title, e.detail_json")) {
             return { results: options.ideaRows ?? [] };
           }
           return { results: [] };
