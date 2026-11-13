@@ -157,7 +157,7 @@ def build_digest(ideas: list[dict], feeds: list[dict] | None = None, now: dateti
         raise ValueError("now_must_be_timezone_aware")
     candidates = []
     feed_status = []
-    for feed in feeds or FEEDS:
+    for feed in (FEEDS if feeds is None else feeds):
         try:
             items = fetch_feed_items(feed, current, 72)
             candidates.extend(items)
