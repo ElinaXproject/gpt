@@ -5,18 +5,21 @@ const TARGETS = [
     id: "tiktok_pieknemedia",
     platform: "tiktok",
     handle: "@pieknemedia",
+    theme: "humor",
     editorial: "Humor sytuacyjny, codzienne życie, krótkie obserwacje i memiczny punkt zwrotny. Nie powielaj ostatnich tematów."
   },
   {
     id: "tiktok_ocenionona6",
     platform: "tiktok",
     handle: "@ocenionona6",
+    theme: "education",
     editorial: "Treści merytoryczne: psychologia, nauka, technologia i mechanizmy codziennego świata. Nie przedstawiaj niezweryfikowanych twierdzeń jako faktów; przygotuj konkretne zapytanie badawcze."
   },
   {
     id: "youtube_memoryagent",
     platform: "youtube",
     handle: "@MemoryAgent-r3",
+    theme: "tech",
     editorial: "Kanał o najnowszej technologii i AI. Każdy temat musi przejść osobny research wiarygodnych źródeł z ostatnich 24–72 godzin; na tym etapie przygotuj wyłącznie propozycję tematu i zapytanie badawcze, bez udawania, że news został zweryfikowany."
   }
 ];
@@ -48,7 +51,7 @@ function extractJson(text) {
 async function generateIdeas(env, localDate) {
   const prompt = [
     "Wygeneruj dokładnie trzy odrębne propozycje tematów — po jednej dla każdego profilu.",
-    "Zwróć wyłącznie JSON: { \"items\": [{ \"profile_id\": string, \"topic\": string, \"hook\": string, \"format\": string, \"research_query\": string, \"editorial_note\": string }] }.",
+    "Zwróć wyłącznie JSON: { \"items\": [{ \"profile_id\": string, \"theme\": \"humor\"|\"education\"|\"tech\", \"topic\": string, \"hook\": string, \"format\": string, \"research_query\": string, \"editorial_note\": string }] }.",
     "Nie wymyślaj źródeł, dat, statystyk, cytatów ani faktów. Nie pisz, że research został wykonany.",
     "Nie twórz ani nie promuj treści o niebezpiecznych działaniach, środkach odurzających, hazardzie, broni, samookaleczeniu ani treści seksualnych.",
     "Dla YouTube Memory Agent zaproponuj temat do sprawdzenia w wiarygodnych źródłach z ostatnich 24–72 godzin; jeśli nie ma świeżego wydarzenia, zaproponuj research, nie news.",
@@ -80,6 +83,8 @@ async function generateIdeas(env, localDate) {
       throw new Error("ai_output_invalid_profile_mapping");
     }
     seen.add(item.profile_id);
+    const target = TARGETS.find((candidate) => candidate.id === item.profile_id);
+    if (item.theme !== target.theme) throw new Error("ai_output_invalid_theme");
     for (const field of ["topic", "hook", "format", "research_query", "editorial_note"]) {
       if (typeof item[field] !== "string" || !item[field].trim()) {
         throw new Error("ai_output_missing_" + field);
