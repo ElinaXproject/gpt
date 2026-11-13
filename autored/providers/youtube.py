@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -14,6 +15,7 @@ from typing import Any
 YOUTUBE_API = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_UPLOAD_API = "https://www.googleapis.com/upload/youtube/v3/videos"
 OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
+UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024
 EXPECTED_MEMORY_AGENT_CHANNEL_ID = "UCOE1EX9WZGDesaJNYIEhj7g"
 
 
@@ -47,6 +49,8 @@ class YouTubeUploader:
         try:
             return self.opener(request, timeout=timeout)
         except urllib.error.HTTPError as exc:
+            if exc.code == 308:
+                return exc
             raise YouTubeError("provider_rejected", exc.code) from None
         except (urllib.error.URLError, TimeoutError, OSError):
             raise YouTubeError("network_outcome_unknown") from None
@@ -146,6 +150,60 @@ class YouTubeUploader:
         }
         return scheduled, {"snippet": snippet, "status": status}
 
+    def _upload_resumable(self, upload_url: str, access_token: str, media_path: Path) -> dict[str, Any]:
+        size = media_path.stat().st_size
+        offset = 0
+        no_progress_attempts = 0
+        final_payload: dict[str, Any] | None = None
+        with media_path.open("rb") as media:
+            while offset < size:
+                media.seek(offset)
+                chunk = media.read(min(UPLOAD_CHUNK_SIZE, size - offset))
+                if not chunk:
+                    raise YouTubeError("upload_media_read_failed")
+                end = offset + len(chunk) - 1
+                request = urllib.request.Request(
+                    upload_url,
+                    data=chunk,
+                    headers={
+                        "Authorization": "Bearer " + access_token,
+                        "Content-Type": "video/mp4",
+                        "Content-Length": str(len(chunk)),
+                        "Content-Range": f"bytes {offset}-{end}/{size}",
+                    },
+                    method="PUT",
+                )
+                with self._open(request, timeout=180) as response:
+                    status = getattr(response, "status", 200)
+                    raw = response.read()
+                    headers = getattr(response, "headers", {})
+                if status == 308:
+                    range_header = headers.get("Range") if headers else None
+                    match = re.fullmatch(r"bytes=0-(\\d+)", str(range_header or ""))
+                    next_offset = int(match.group(1)) + 1 if match else 0
+                    if next_offset <= offset:
+                        no_progress_attempts += 1
+                        if no_progress_attempts >= 3:
+                            raise YouTubeError("upload_resume_made_no_progress", 308)
+                    else:
+                        no_progress_attempts = 0
+                    if next_offset > size:
+                        raise YouTubeError("upload_resume_range_out_of_bounds", 308)
+                    offset = next_offset
+                    continue
+                if status not in {200, 201}:
+                    raise YouTubeError("upload_failed", status)
+                if end + 1 != size:
+                    raise YouTubeError("upload_completed_before_all_chunks", status)
+                try:
+                    final_payload = json.loads(raw.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    raise YouTubeError("upload_response_invalid_json") from None
+                offset = size
+        if not isinstance(final_payload, dict):
+            raise YouTubeError("upload_response_missing")
+        return final_payload
+
     def upload_and_schedule(self, metadata: dict[str, Any], media_path: Path) -> dict[str, Any]:
         if metadata.get("privacy", "public") == "public" and not self.api_audited:
             raise YouTubeError("youtube_api_audit_required_for_public")
@@ -183,34 +241,12 @@ class YouTubeUploader:
         ):
             raise YouTubeError("unsafe_resumable_upload_url")
 
-        data = media_path.read_bytes()
-        upload_request = urllib.request.Request(
-            upload_url,
-            data=data,
-            headers={
-                "Authorization": "Bearer " + access_token,
-                "Content-Type": mime_type,
-                "Content-Length": str(size),
-                "Content-Range": f"bytes 0-{size - 1}/{size}",
-            },
-            method="PUT",
-        )
         try:
-            with self._open(upload_request, timeout=180) as response:
-                upload_status = getattr(response, "status", 200)
-                raw = response.read()
+            uploaded = self._upload_resumable(upload_url, access_token, media_path)
         except YouTubeError as exc:
             if exc.code == "network_outcome_unknown":
                 raise YouTubeError("upload_outcome_unknown_manual_reconciliation_required") from None
             raise
-        if upload_status == 308:
-            raise YouTubeError("upload_incomplete_resume_required", upload_status)
-        if upload_status not in {200, 201}:
-            raise YouTubeError("upload_failed", upload_status)
-        try:
-            uploaded = json.loads(raw.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            raise YouTubeError("upload_response_invalid_json") from None
         video_id = uploaded.get("id")
         if not isinstance(video_id, str) or not video_id:
             raise YouTubeError("video_id_missing")
