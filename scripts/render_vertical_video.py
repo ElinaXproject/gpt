@@ -98,7 +98,7 @@ def make_text_overlay(
         fill=(0, 0, 0, 178),
     )
     draw.multiline_text(
-        (padding - bbox[0], padding - bbox[1]),
+        (padding - math.floor(bbox[0]), padding - math.floor(bbox[1])),
         wrapped,
         font=font,
         fill=(255, 255, 255, 255),
