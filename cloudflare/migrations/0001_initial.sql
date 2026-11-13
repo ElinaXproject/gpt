@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS content_items (
   status TEXT NOT NULL DEFAULT 'idea' CHECK (status IN ('idea','draft','ready','blocked','scheduled','published','failed')),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  daily_run_date TEXT
+  daily_run_date TEXT,
+  safety_review_status TEXT NOT NULL DEFAULT 'pending' CHECK (safety_review_status IN ('pending','passed','blocked'))
 );
 
 CREATE TABLE IF NOT EXISTS publication_jobs (
