@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:59 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:12 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -24,7 +24,7 @@
 | Zapis pomysłów w D1 | NOT RUN | tabela jest gotowa, brak jeszcze rekordów z Cron |
 | Research i weryfikacja źródeł | PARTIAL | 9/9 RSS PASS; 72h digest z dopasowaniem tematów działa i zapisuje artefakt; fact-check nadal ręczny/niezautomatyzowany |
 | Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
-| Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
+| Renderowanie mediów | PARTIAL | Piper + FFmpeg H.264/AAC; ffprobe validators for TikTok 9:16 and YouTube vertical/landscape; artifact handoff and production manifest integration pending |
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; bezpieczny klient API i testy gotowe; brak klucza API w środowisku wykonawczym |
 | TikTok @ocenionona6 | BLOCKED | Metricool połączony; brak potwierdzonego limitu planu i brak backendowego tokenu/adaptera; brak połączenia w Publora |
 | YouTube @MemoryAgent-r3c | BLOCKED | Metricool ID nie zgadza się z ID vidIQ; brak poprawnego połączenia i backendowego tokenu/adaptera |
@@ -65,7 +65,12 @@
 - Zweryfikowano D1 Time Travel: baza produkcyjna ma backend `production`, EU/EEUR; bookmark bieżący i historyczny działają. Test restore na odizolowanej bazie testowej przywrócił stan sprzed dodatkowego rekordu; baza testowa została usunięta.
 - R2 pozostaje wyłączony (Cloudflare API wymaga ręcznego włączenia w Dashboard). Przygotowano workflow szyfrowanego backupu D1 do GitHub Artifacts na 90 dni oraz lokalny weryfikator odszyfrowania, SHA-256 i SQLite integrity; wymaga `CLOUDFLARE_API_TOKEN` i `BACKUP_AGE_RECIPIENT`.
 - Dodano codzienny workflow research o 09:15 czasu Europe/Warsaw z obsługą DST i retencją artefaktu 3 dni; workflow YAML został przyjęty przez GitHub Actions, pierwszy harmonogram jeszcze nie wykonał się.
-- Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni i idempotency key. CI #131: PASS. Nie wykonano żadnej publikacji.
+- Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni, account-context quota gate i idempotency key. CI PASS. Nie wykonano żadnej publikacji.
+- Dodano natywny TikTok Direct Post adapter z refresh-token rotation, D1 AES-GCM vault, sprawdzeniem właściciela konta, ograniczeniem publicznego postowania do aplikacji po audycie, due-time gate i wymogiem osadzonej licencjonowanej ścieżki audio.
+- Dodano natywny YouTube uploader: OAuth refresh, weryfikacja dokładnego channel ID `UCOE1EX9WZGDesaJNYIEhj7g`, resumable upload, `publishAt` oraz bramka oficjalnego audytu dla publicznego planowania.
+- Dodano `scripts/tiktok_publish.py` i `scripts/youtube_publish.py`, walidatory FFprobe dla TikTok/YouTube oraz pola D1 dla fact-check, licencji muzyki, providerów i artefaktów.
+- Dodano tabelę D1 `provider_tokens` i AES-256-GCM token vault; rotowane tokeny TikTok są szyfrowane w D1.
+- Testy CI #248–#251: PASS; ostatni raport obejmuje 121 testów Python oraz testy Worker. Brak publikacji publicznej; OAuth, oficjalne audyty, media artifact scheduler i niezależna akceptacja safety pozostają blokadami.
 - Dodano D1 publication job adapter: sprawdza content_id/profile/status, zapisuje idempotentny job `planned`, aktualizuje content item do `scheduled`; pipeline wymaga Cloudflare D1 tokenu, nie publikuje bez rejestracji joba. Testy D1 adaptera i integracji Publora w CI #192/#194: PASS.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
@@ -76,7 +81,7 @@
 - Metricool: limity planu nie zostały potwierdzone; nie zakładać wartości.
 - Worker nie ma poświadczeń providerów; połączenia w ChatGPT nie są automatycznie dostępne w Cloudflare.
 
-1. Klient Publora, pipeline szkic→upload→schedule i D1 job persistence mają testy PASS; produkcyjne uruchomienie wymaga PUBLORA_API_KEY i CLOUDFLARE_API_TOKEN w GitHub Secrets.
+1. Publora pipeline ma testy PASS, ale limit 15/mies. jest za mały dla docelowego wolumenu. Natywne TikTok/YouTube adaptery są gotowe na poziomie kodu; produkcyjne uruchomienie wymaga OAuth, oficjalnych audytów i scheduler/media artifact handoff.
 2. Brak backendowych poświadczeń Publora/Metricool w bezpiecznych sekretach; połączenia ChatGPT nie są dostępne bezpośrednio dla Workera/GitHub Actions.
 3. vidIQ potwierdził kanał `Memory Agent`, handle `@memoryagent-r3c`, ID `UCOE1EX9WZGDesaJNYIEhj7g`; Metricool wskazuje inne ID `UCRmmEQysOmUbs8mpZEOgtLw`, więc mapowanie YouTube jest BLOCKED i publikacja przez Metricool zabroniona do czasu naprawy.
 4. Brak renderera i testów FFmpeg.
