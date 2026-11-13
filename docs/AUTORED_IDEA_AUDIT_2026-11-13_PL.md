@@ -23,7 +23,7 @@
 - Wpisy w kalendarzu mają status `Do przygotowania` / `Wstrzymane`; nie ma dowodu, że zostały opublikowane.
 - Poprzedni dziennik opisuje błędy Publora: nieobsługiwane rozmiary JPEG i PNG. Walidacja mediów musi uwzględniać rzeczywiste wymagania każdego adaptera.
 - Plan Publora Starter ma limit 15 publikacji miesięcznie. Historyczna konfiguracja Metricool Free wskazywała 20 publikacji miesięcznie, ale bieżący odczyt nie zweryfikował aktualnego zużycia i limitu Metricool — traktować jako niepotwierdzone do ponownego odczytu.
-- YouTube ID w Metricool jest widoczny, ale nie potwierdzono, że należy do uchwytu `@MemoryAgent-r3`. Wymagany test kanału.
+- YouTube ID w Metricool jest widoczny, ale nie potwierdzono, że należy do uchwytu `@MemoryAgent-r3c`. Wymagany test kanału.
 - Brak autoryzacji TikTok Content Posting API i Google OAuth w Activepieces.
 
 ## 3. Decyzje bazowe
