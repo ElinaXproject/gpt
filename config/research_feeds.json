@@ -7,6 +7,9 @@
     "allowed_domains": [
       "bbc.com",
       "bbc.co.uk"
+    ],
+    "feed_domains": [
+      "bbci.co.uk"
     ]
   },
   {
