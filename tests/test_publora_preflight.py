@@ -36,24 +36,39 @@ class FakeClient:
         return {"status": "ok"}
 
 
+class FakeD1Client:
+    def __init__(self, missing=None):
+        self.missing = set(missing or [])
+
+    def query(self, sql, params):
+        handles = ["@pieknemedia", "@ocenionona6", "@MemoryAgent-r3c"]
+        return {"results": [{"handle": handle} for handle in handles if handle not in self.missing]}
+
+
 class PubloraPreflightTests(unittest.TestCase):
     def test_all_exact_connections_pass(self):
-        result = run_preflight(FakeClient())
+        result = run_preflight(FakeClient(), FakeD1Client())
         self.assertEqual("ready", result["status"])
         self.assertEqual(3, result["ready_profiles"])
         self.assertFalse(result["publishing_performed"])
 
     def test_missing_tiktok_account_is_reported(self):
-        result = run_preflight(FakeClient(missing={"tiktok_ocenionona6"}))
+        result = run_preflight(FakeClient(missing={"tiktok_ocenionona6"}), FakeD1Client())
         self.assertEqual("incomplete", result["status"])
         missing = next(x for x in result["profiles"] if x["profile_id"] == "tiktok_ocenionona6")
         self.assertEqual("target_connection_not_unique", missing["reason"])
 
     def test_wrong_youtube_channel_id_is_blocked(self):
-        result = run_preflight(FakeClient(youtube_id="youtube-UCRmmEQysOmUbs8mpZEOgtLw"))
+        result = run_preflight(FakeClient(youtube_id="youtube-UCRmmEQysOmUbs8mpZEOgtLw"), FakeD1Client())
         youtube = next(x for x in result["profiles"] if x["profile_id"] == "youtube_memoryagent")
         self.assertEqual("youtube_channel_id_mismatch", youtube["reason"])
         self.assertEqual("incomplete", result["status"])
+
+    def test_missing_d1_profile_mapping_blocks_preflight(self):
+        result = run_preflight(FakeClient(), FakeD1Client(missing={"@MemoryAgent-r3c"}))
+        self.assertEqual("incomplete", result["status"])
+        self.assertEqual("incomplete", result["d1_database"]["status"])
+        self.assertEqual(["@MemoryAgent-r3c"], result["d1_database"]["missing_profiles"])
 
 
 if __name__ == "__main__":
