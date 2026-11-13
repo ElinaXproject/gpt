@@ -97,7 +97,7 @@ async function runDaily(env, scheduledAt = new Date()) {
   }
 
   const existing = await env.DB.prepare(
-    ""SELECT status, started_at FROM daily_runs WHERE local_date = ?""
+    "SELECT status, started_at FROM daily_runs WHERE local_date = ?"
   ).bind(localDate).first();
 
   if (existing?.status === "succeeded") {
