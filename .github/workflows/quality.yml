@@ -24,3 +24,5 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Check Cloudflare Worker module syntax
         run: node --input-type=module --check < cloudflare/worker.js
+      - name: Verify deployed Cloudflare Worker health
+        run: curl --fail --silent --show-error https://autored-idea-api.frozone-social.workers.dev/health
