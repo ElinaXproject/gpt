@@ -101,7 +101,7 @@ function validateHumorDraft(draft) {
   if (typeof draft?.description !== "string" || !draft.description.trim() || draft.description.length > 2200) errors.push("invalid_description");
   if (!Array.isArray(draft?.hashtags) || draft.hashtags.length < 3 || draft.hashtags.length > 8) {
     errors.push("invalid_hashtags");
-  } else if (draft.hashtags.some((tag) => typeof tag !== "string" || !/^#[\\p{L}\\p{N}_]{2,}$/u.test(tag))) {
+  } else if (draft.hashtags.some((tag) => typeof tag !== "string" || !/^#[\p{L}\p{N}_]{2,}$/u.test(tag))) {
     errors.push("invalid_hashtag_format");
   }
   if (!Array.isArray(draft?.script) || draft.script.length < 3 || draft.script.length > 5) {
