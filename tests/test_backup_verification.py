@@ -25,12 +25,13 @@ class BackupVerificationTests(unittest.TestCase):
         CREATE TABLE quota_ledger (id TEXT PRIMARY KEY);
         CREATE TABLE daily_runs (local_date TEXT PRIMARY KEY);
         CREATE TABLE events (id TEXT PRIMARY KEY);
+        CREATE TABLE provider_tokens (provider TEXT, profile_id TEXT, encrypted_refresh_token TEXT, iv TEXT, key_version TEXT);
         INSERT INTO profiles(id) VALUES ('tiktok_pieknemedia');
         """
         result = verify_sql_dump(self.write_sql(sql))
         self.assertEqual("ok", result["integrity"])
         self.assertEqual(1, result["row_counts"]["profiles"])
-        self.assertEqual(6, len(result["tables"]))
+        self.assertEqual(7, len(result["tables"]))
 
     def test_missing_required_table_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "missing_expected_tables"):
