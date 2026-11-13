@@ -74,6 +74,7 @@ class ContentPackage:
     safety_review_passed: bool = False
     source_published_at: tuple[str, ...] = ()
     fact_check_passed: bool = False
+    fact_check_reference: str = ""
 
     def validate(self) -> list[str]:
         errors: list[str] = []
@@ -104,6 +105,12 @@ class ContentPackage:
             errors.append("insufficient_verified_sources")
         if minimum_sources and not self.fact_check_passed:
             errors.append("fact_check_not_passed")
+        if minimum_sources and not self.fact_check_reference.strip():
+            errors.append("missing_fact_check_reference")
+        if self.profile_key == "youtube_memoryagent":
+            source_domains = {urlparse(url).hostname.lower().removeprefix("www.") for url in self.source_urls if urlparse(url).hostname}
+            if len(source_domains) < 2:
+                errors.append("insufficient_independent_source_domains")
         if minimum_sources and len(self.source_published_at) != len(self.source_urls):
             errors.append("source_dates_mismatch")
         if minimum_sources and len(self.source_published_at) == len(self.source_urls):
