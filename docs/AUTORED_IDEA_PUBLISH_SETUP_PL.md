@@ -83,6 +83,15 @@ Aktualny snapshot Publora Starter: 15 platform-postów miesięcznie łącznie, 3
 4. Przed uploadem artefaktu uruchamia `python scripts/create_media_artifact.py --manifest manifest.json --media final.mp4 --output media_bundle.zip.age` i publikuje wyłącznie plik `media_bundle.zip.age`.
 5. Nigdy nie uploadować do publicznego repozytorium surowego `manifest.json`, `.mp4` ani plaintext ZIP. Brak recipienta lub identity blokuje proces.
 
+### Render → encrypted artifact → D1 queue
+
+1. Dla istniejącego draftu utwórz wejście renderera: `python scripts/build_render_input.py --content-id ID --profile-id PROFILE --output render-input.json`.
+2. Wygeneruj MP4 przez `scripts/render_vertical_video.py` (wymaga FFmpeg/Piper i zasobów głosu/tła). Dla TikToka renderer wymaga osadzonego, licencjonowanego audio.
+3. Wykonaj safety review, a dla profili faktograficznych także human fact-check. Bez tych raportów manifest nie powstanie.
+4. W workflow renderującym wywołaj composite action `.github/actions/package-and-schedule` po wygenerowaniu MP4. Wymagane: `CLOUDFLARE_API_TOKEN`, repository variable `AUTORED_ARTIFACT_AGE_RECIPIENT`, uprawnienia `actions: write` i `contents: read`.
+5. Przekaż do action: `content-id`, `profile-id`, `provider`, `media-path`, `scheduled-at`. Dla YouTube wymagane jest jawne `audience-classification`; dla TikToka `music-embedded=true` i `music-license-reference`.
+6. Action sama przyłącza metadane mediów, tworzy provider manifest, szyfruje bundle, uploaduje wyłącznie zaszyfrowany artefakt i zapisuje job w D1. Dispatcher sprawdza kolejkę co 15 minut.
+
 ### Human safety-review gate
 
 - Każdy content musi przejść osobną checklistę: `content_safety`, `copyright_rights`, `platform_rules`, `ai_disclosure`; TikTok wymaga także `music_license`, a profile faktograficzne `factual_accuracy`.
