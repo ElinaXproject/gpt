@@ -163,6 +163,43 @@ class D1ClientTests(unittest.TestCase):
         self.assertEqual("planned", result["status"])
         self.assertEqual(4, len(requests))
 
+
+    def test_native_youtube_job_requires_fact_check_and_can_be_scheduled(self):
+        content = self.publishable_content(
+            profile_id="youtube_memoryagent",
+            fact_check_passed=1,
+            fact_check_reference="factcheck:sha256:report-001",
+            music_embedded=0,
+            music_license_reference=""
+        )
+        client, requests = self.client([
+            self.response([content], 0),
+            self.response([], 1),
+            self.response([{"id":"job-youtube","content_id":"content-1","profile_id":"youtube_memoryagent","status":"planned","provider":"youtube_direct","platform_post_id":None}], 0),
+            self.response([], 1),
+            self.response([], 1),
+        ])
+        result = client.reserve_job(
+            content_id="content-1", profile_id="youtube_memoryagent",
+            scheduled_at="2026-11-14T12:00:00+00:00",
+            idempotency_key="youtube-key", provider="youtube_direct",
+            media_artifact_id="artifact-123"
+        )
+        self.assertEqual("youtube_direct", result["provider"])
+        client.mark_job_publishing("job-youtube")
+        self.assertEqual(5, len(requests))
+
+    def test_youtube_job_schedule_transition_stays_planned(self):
+        client, requests = self.client([self.response([], changes=1)])
+        client.mark_job_scheduled("job-youtube", "video-123")
+        self.assertIn("provider='youtube_direct'", requests[0].data.decode("utf-8"))
+
+    def test_due_job_query_does_not_reupload_scheduled_youtube_videos(self):
+        client, requests = self.client([self.response([], changes=0)])
+        client.get_due_jobs("2026-11-14T12:00:00Z", limit=10)
+        sql = json.loads(requests[0].data.decode("utf-8"))["sql"]
+        self.assertIn("provider!='youtube_direct' OR platform_post_id IS NULL", sql)
+
     def test_mark_job_publishing_requires_valid_state_transition(self):
         client, _requests = self.client([self.response([], changes=1)])
         client.mark_job_publishing("job-test")
