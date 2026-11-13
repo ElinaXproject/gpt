@@ -150,7 +150,18 @@ def process_manifest(client: Any, item: dict[str, Any], job_store: Any | None = 
             raise
         current = client.get_post(post_group_id)
         group = current.get("postGroup", current)
-        if group.get("status") == "scheduled":
+        actual_time = group.get("scheduledTime") or group.get("scheduledAt") or group.get("scheduled_at")
+        expected_time = validated["scheduled_time"].astimezone(timezone.utc)
+        try:
+            parsed_actual = datetime.fromisoformat(str(actual_time).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            parsed_actual = None
+        matches_time = (
+            parsed_actual is not None
+            and parsed_actual.tzinfo is not None
+            and abs((parsed_actual.astimezone(timezone.utc) - expected_time).total_seconds()) <= 60
+        )
+        if group.get("status") == "scheduled" and matches_time:
             scheduled = current
         else:
             # Never blindly repeat a schedule update after an unknown outcome.
