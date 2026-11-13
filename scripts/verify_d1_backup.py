@@ -53,8 +53,17 @@ def verify_sql_dump(sql_path: Path, expected_tables: set[str] | None = None) -> 
 def decrypt_and_verify(archive: Path, identity: Path, manifest_path: Path) -> dict[str, Any]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     expected_hash = manifest.get("plaintext_sha256")
-    if not isinstance(expected_hash, str) or len(expected_hash) != 64:
+    expected_encrypted_hash = manifest.get("encrypted_sha256")
+    if (
+        not isinstance(expected_hash, str)
+        or len(expected_hash) != 64
+        or not isinstance(expected_encrypted_hash, str)
+        or len(expected_encrypted_hash) != 64
+    ):
         raise ValueError("invalid_backup_manifest")
+    actual_encrypted_hash = hashlib.sha256(archive.read_bytes()).hexdigest()
+    if actual_encrypted_hash != expected_encrypted_hash:
+        raise ValueError("backup_encrypted_sha256_mismatch")
     with tempfile.TemporaryDirectory(prefix="autored-backup-") as tmp:
         sql_path = Path(tmp) / "autored_idea_db.sql"
         subprocess.run(
@@ -68,7 +77,7 @@ def decrypt_and_verify(archive: Path, identity: Path, manifest_path: Path) -> di
             raise ValueError("backup_sha256_mismatch")
         result = verify_sql_dump(sql_path)
         result["plaintext_sha256"] = actual_hash
-        result["encrypted_sha256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
+        result["encrypted_sha256"] = actual_encrypted_hash
         result["database"] = manifest.get("database", "unknown")
         return result
 
