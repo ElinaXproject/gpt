@@ -14,6 +14,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -101,13 +102,9 @@ class PubloraClient:
         connection = matches[0]
         if connection.get("connectionStatus") != "active":
             raise PubloraError("target_connection_not_active")
-        if connection.get("tokenStatus") == "expired":
-            raise PubloraError("target_token_expired")
+        if connection.get("tokenStatus") not in {"valid", "active", "ok"}:
+            raise PubloraError("target_token_not_verified")
         return connection
-
-    def test_connection(self, platform_id: str) -> dict[str, Any]:
-        safe_id = urllib.parse.quote(platform_id, safe="")
-        return self._request("POST", f"/test-connection/{safe_id}", body={})
 
     def create_draft(
         self,
@@ -145,6 +142,7 @@ class PubloraClient:
                 "fileName": media_path.name,
                 "contentType": mime_type,
                 "postGroupId": post_group_id,
+                "type": "image" if mime_type.startswith("image/") else "video",
             },
         )
         upload_url = upload.get("uploadUrl")
@@ -168,9 +166,40 @@ class PubloraClient:
             raise PubloraError("media_upload_outcome_unknown") from None
         if not 200 <= status < 300:
             raise PubloraError("media_upload_failed", status)
-        if not upload.get("mediaId"):
+        media_id = upload.get("mediaId")
+        if not isinstance(media_id, str) or not media_id:
             raise PubloraError("missing_media_id")
-        return {"mediaId": upload["mediaId"], "fileUrl": upload.get("fileUrl")}
+        self.complete_media(media_id)
+        post = self.get_post(post_group_id)
+        group = post.get("postGroup", post.get("post", post))
+        media_items = group.get("media") if isinstance(group, dict) else None
+        media_items = media_items if isinstance(media_items, list) else post.get("media", [])
+        matching = [item for item in media_items if item.get("mediaId") == media_id]
+        if len(matching) != 1 or matching[0].get("status") != "ready":
+            raise PubloraError("uploaded_media_not_ready")
+        return {"mediaId": media_id, "fileUrl": upload.get("fileUrl"), "status": "ready"}
+
+    def complete_media(self, media_id: str, max_attempts: int = 3) -> dict[str, Any]:
+        safe_id = urllib.parse.quote(media_id, safe="")
+        for attempt in range(max_attempts):
+            try:
+                result = self._request("POST", f"/complete-media/{safe_id}")
+            except PubloraError as exc:
+                if exc.code == "MEDIA_VALIDATION_PENDING" and attempt < max_attempts - 1:
+                    time.sleep(min(2 ** (attempt + 1), 8))
+                    continue
+                raise
+            media_file = result.get("mediaFile", {})
+            if media_file.get("status") == "ready":
+                return media_file
+            if media_file.get("status") == "failed":
+                raise PubloraError("media_validation_failed")
+            if result.get("retryable") is True and result.get("nextAction") == "WAIT_AND_RETRY_SAME_MEDIA" and attempt < max_attempts - 1:
+                delay = result.get("retryAfterSec", 2)
+                time.sleep(min(max(int(delay), 1), 10))
+                continue
+            raise PubloraError("media_not_ready")
+        raise PubloraError("media_validation_timeout")
 
     def schedule_draft(
         self,
