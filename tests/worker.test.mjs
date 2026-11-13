@@ -44,11 +44,9 @@ function createEnv(options = {}) {
   let aiCalls = 0;
   const DB = {
     prepare(sql) {
-      const statement = { sql, params: [] };
-      const bound = {
-        bind(...params) {
-          statement.params = params;
-          return bound;
+      const createBound = (params = []) => ({
+        bind(...nextParams) {
+          return createBound(nextParams);
         },
         async first() {
           if (sql.includes("SELECT status, started_at FROM daily_runs")) {
@@ -60,16 +58,16 @@ function createEnv(options = {}) {
           return null;
         },
         async run() {
-          statements.push({ sql, params: statement.params });
+          statements.push({ sql, params });
           if (sql.includes("INSERT INTO daily_runs")) state.status = "running";
           if (sql.includes("UPDATE daily_runs SET status='succeeded'")) state.status = "succeeded";
           if (sql.includes("UPDATE daily_runs SET status='failed'")) state.status = "failed";
           return { success: true };
         },
         sql,
-        get params() { return statement.params; }
-      };
-      return bound;
+        params
+      });
+      return createBound();
     },
     async batch(batchStatements) {
       statements.push({
