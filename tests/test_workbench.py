@@ -24,7 +24,7 @@ class WorkbenchRepositoryTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.read(path)
 
-    def test_autored_project_documents_exist(self):
+    def test_autored_project_documents_and_runtime_files_exist(self):
         required = (
             "docs/AUTORED_IDEA_ARCHITECTURE_PL.md",
             "docs/AUTORED_IDEA_EXECUTION_PLAN_PL.md",
@@ -35,6 +35,9 @@ class WorkbenchRepositoryTests(unittest.TestCase):
             "docs/AUTORED_IDEA_DECISIONS_PL.md",
             "autored/README.md",
             "autored/core.py",
+            "cloudflare/worker.js",
+            "cloudflare/migrations/0001_initial.sql",
+            "wrangler.toml",
         )
         for path in required:
             with self.subTest(path=path):
@@ -129,6 +132,46 @@ class WorkbenchRepositoryTests(unittest.TestCase):
         self.assertIn("package-ecosystem: github-actions", content)
         self.assertIn("interval: weekly", content)
         self.assertIn("open-pull-requests-limit: 5", content)
+
+    def test_cloudflare_worker_has_guarded_json_and_idempotent_daily_jobs(self):
+        worker = self.read("cloudflare/worker.js")
+        required = (
+            'response_format: { type: "json_object" }',
+            "result?.choices?.[0]?.message?.content",
+            "new Intl.DateTimeFormat",
+            'timeZone: TIME_ZONE',
+            "INSERT OR IGNORE INTO content_items",
+            "daily_run_date",
+            "run_still_active",
+            'url.pathname === "/health"',
+            "ctx.waitUntil(runDaily",
+        )
+        for value in required:
+            with self.subTest(value=value):
+                self.assertIn(value, worker)
+
+    def test_cloudflare_worker_does_not_publish_before_platform_adapters_exist(self):
+        worker = self.read("cloudflare/worker.js")
+        self.assertIn("stage: \"idea_only\"", worker)
+        self.assertNotIn("video.publish", worker)
+        self.assertNotIn("youtube.upload", worker)
+
+    def test_d1_schema_contains_all_required_entities_and_profiles(self):
+        schema = self.read("cloudflare/migrations/0001_initial.sql")
+        for table in ("profiles", "content_items", "publication_jobs", "quota_ledger", "daily_runs", "events"):
+            with self.subTest(table=table):
+                self.assertIn(f"CREATE TABLE IF NOT EXISTS {table}", schema)
+        for profile in ("@ocenionona6", "@pieknemedia", "@MemoryAgent-r3"):
+            with self.subTest(profile=profile):
+                self.assertIn(profile, schema)
+        self.assertIn("idx_content_daily_profile", schema)
+
+    def test_wranger_config_matches_deployed_database_and_timezone_schedule(self):
+        config = self.read("wrangler.toml")
+        self.assertIn('name = "autored-idea-api"', config)
+        self.assertIn('database_name = "autored_idea_db"', config)
+        self.assertIn('binding = "AI"', config)
+        self.assertIn('crons = ["0 7,8 * * *"]', config)
 
 
 if __name__ == "__main__":
