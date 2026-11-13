@@ -88,10 +88,16 @@ def render(args: argparse.Namespace) -> dict:
     if not title or not script or not cta:
         raise ValueError("input_requires_title_script_cta")
 
+    music_license_ref = args.music_license_ref or str(source.get("music_license_ref", "")).strip()
+    music_required = bool(source.get("music_required", False)) or (
+        source.get("platform") == "tiktok" and source.get("format") == "video"
+    )
+    if music_required and not args.music:
+        raise ValueError("licensed_music_required")
     if args.music:
         if not args.music.is_file():
             raise FileNotFoundError(args.music)
-        if not args.music_license_ref.strip():
+        if not music_license_ref:
             raise ValueError("music_license_reference_required")
 
     workdir = args.output.parent
@@ -191,7 +197,7 @@ def render(args: argparse.Namespace) -> dict:
         "audio_codec": audio["codec_name"],
         "voice": args.voice,
         "music_included": bool(args.music),
-        "music_license_ref": args.music_license_ref if args.music else None,
+        "music_license_ref": music_license_ref if args.music else None,
         "file_bytes": args.output.stat().st_size,
     }
 
