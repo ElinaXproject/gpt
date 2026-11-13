@@ -72,6 +72,8 @@
 - Dodano tabelę D1 `provider_tokens` i AES-256-GCM token vault; rotowane tokeny TikTok są szyfrowane w D1.
 - Testy CI #248–#251: PASS; ostatni raport obejmuje 121 testów Python oraz testy Worker. Brak publikacji publicznej; OAuth, oficjalne audyty, media artifact scheduler i niezależna akceptacja safety pozostają blokadami.
 - Dodano D1 publication job adapter: sprawdza content_id/profile/status, zapisuje idempotentny job `planned`, aktualizuje content item do `scheduled`; pipeline wymaga Cloudflare D1 tokenu, nie publikuje bez rejestracji joba. Testy D1 adaptera i integracji Publora w CI #192/#194: PASS.
+- Audyt bezpieczeństwa uploadów: odpowiedzi API dostarczały URL-e transferowe, do których klient wysyłał pliki; dodano ścisłe allowlisty hostów TikTok `open-upload.tiktokapis.com` i YouTube `www.googleapis.com`, blokadę innych hostów, portów, userinfo i fragmentów. Dodano testy negatywne dla niezaufanych URL-i. Oficjalne dokumentacje potwierdzają hosty uploadowe: TikTok Upload/Direct Post oraz Google resumable upload.
+- GitHub Actions #260: PASS — 129 testów Python, testy Workera, składnia modułu oraz health i read-only endpoint wdrożonego Workera. Commity bezpieczeństwa #257–#258 miały czerwone przebiegi pośrednie przed aktualizacją fixture testowych; końcowy commit #260 przeszedł pełny workflow.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
 
@@ -84,7 +86,7 @@
 1. Publora pipeline ma testy PASS, ale limit 15/mies. jest za mały dla docelowego wolumenu. Natywne TikTok/YouTube adaptery są gotowe na poziomie kodu; produkcyjne uruchomienie wymaga OAuth, oficjalnych audytów i scheduler/media artifact handoff.
 2. Brak backendowych poświadczeń Publora/Metricool w bezpiecznych sekretach; połączenia ChatGPT nie są dostępne bezpośrednio dla Workera/GitHub Actions.
 3. vidIQ potwierdził kanał `Memory Agent`, handle `@memoryagent-r3c`, ID `UCOE1EX9WZGDesaJNYIEhj7g`; Metricool wskazuje inne ID `UCRmmEQysOmUbs8mpZEOgtLw`, więc mapowanie YouTube jest BLOCKED i publikacja przez Metricool zabroniona do czasu naprawy.
-4. Brak renderera i testów FFmpeg.
+4. Renderer FFmpeg jest dostępny i ma smoke/regression tests; nie ma jeszcze potwierdzonego, end-to-end handoff artefaktu do natywnych publisherów w środowisku produkcyjnym.
 5. Renderer działa w testach; pełne automatyczne generowanie treści i łączenie research → scenariusz → render → publikacja nadal nieukończone.
 6. Brak bezpiecznego, odseparowanego miejsca backupu i testu restore.
 7. Nie wykonano jeszcze pierwszego zaplanowanego przebiegu Cron.
