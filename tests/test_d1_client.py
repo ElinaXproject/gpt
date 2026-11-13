@@ -194,6 +194,14 @@ class D1ClientTests(unittest.TestCase):
         client.mark_job_scheduled("job-youtube", "video-123")
         self.assertIn("provider='youtube_direct'", requests[0].data.decode("utf-8"))
 
+    def test_pending_tiktok_query_only_selects_publishing_jobs_with_post_ids(self):
+        client, requests = self.client([self.response([], changes=0)])
+        client.get_pending_tiktok_jobs(limit=5)
+        sql = json.loads(requests[0].data.decode("utf-8"))["sql"]
+        self.assertIn("provider='tiktok_direct'", sql)
+        self.assertIn("status='publishing'", sql)
+        self.assertIn("platform_post_id IS NOT NULL", sql)
+
     def test_due_job_query_does_not_reupload_scheduled_youtube_videos(self):
         client, requests = self.client([self.response([], changes=0)])
         client.get_due_jobs("2026-11-14T12:00:00Z", limit=10)
