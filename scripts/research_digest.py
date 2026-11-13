@@ -15,6 +15,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from urllib.parse import urlparse
 
 
@@ -196,7 +197,21 @@ def main() -> int:
     parser.add_argument("--ideas", type=Path, help="Optional JSON object with an items array")
     parser.add_argument("--queries", type=Path, default=ROOT / "config/research_queries.json")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--require-local-hour", type=int)
     args = parser.parse_args()
+    if args.require_local_hour is not None:
+        local_hour = datetime.now(ZoneInfo("Europe/Warsaw")).hour
+        if local_hour != args.require_local_hour:
+            skipped = {
+                "status": "skipped",
+                "reason": "outside_local_schedule",
+                "local_hour": local_hour,
+                "required_local_hour": args.require_local_hour,
+            }
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(skipped, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            print(json.dumps(skipped, ensure_ascii=False))
+            return 0
     try:
         source_path = args.ideas or args.queries
         payload = json.loads(source_path.read_text(encoding="utf-8"))
