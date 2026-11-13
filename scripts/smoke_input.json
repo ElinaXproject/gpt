@@ -1,5 +1,6 @@
 {
   "title": "AUTORED IDEA — test renderera",
   "script": "To jest test automatycznego renderowania materiału wideo. System tworzy polską narrację, napisy i pionowy obraz. Każdy plik przechodzi kontrolę formatu, obrazu i dźwięku przed publikacją.",
-  "cta": "Obserwuj po więcej"
+  "cta": "Obserwuj po więcej",
+  "theme": "tech"
 }
