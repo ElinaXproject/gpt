@@ -83,6 +83,13 @@ Aktualny snapshot Publora Starter: 15 platform-postów miesięcznie łącznie, 3
 4. Przed uploadem artefaktu uruchamia `python scripts/create_media_artifact.py --manifest manifest.json --media final.mp4 --output media_bundle.zip.age` i publikuje wyłącznie plik `media_bundle.zip.age`.
 5. Nigdy nie uploadować do publicznego repozytorium surowego `manifest.json`, `.mp4` ani plaintext ZIP. Brak recipienta lub identity blokuje proces.
 
+### Human safety-review gate
+
+- Każdy content musi przejść osobną checklistę: `content_safety`, `copyright_rights`, `platform_rules`, `ai_disclosure`; TikTok wymaga także `music_license`, a profile faktograficzne `factual_accuracy`.
+- Po obejrzeniu finalnego tekstu, obrazu/wideo, audio, praw/licencji i disclosure, uprawniony recenzent przygotowuje JSON z `reviewer`, `reviewed_at` (timezone), `decision` oraz booleanami `checks` i uruchamia: `python scripts/submit_safety_review.py --content-id ID --profile-id PROFILE --report safety-review.json`.
+- Każdy fałsz lub brak wymaganej kontroli zapisuje status `blocked`; tylko komplet pozytywnych kontroli zapisuje `passed`. Publisher ponownie sprawdza raport i referencję SHA-256.
+- Safety review i fact-check to dwa niezależne gate'y. Jeden nie zastępuje drugiego.
+
 ### Human fact-check gate dla treści faktograficznych
 
 - Dla profilu YouTube każdy claim musi mieć bezpośrednie wsparcie z co najmniej dwóch niezależnych, allowlistowanych domen; dla profilu edukacyjnego TikTok wymagane jest co najmniej jedno źródło. Wszystkie źródła muszą mieścić się w oknie 72 godzin.
