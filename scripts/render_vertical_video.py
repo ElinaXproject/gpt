@@ -88,8 +88,8 @@ def make_text_overlay(
     probe = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
     draw = ImageDraw.Draw(probe)
     bbox = draw.multiline_textbbox((0, 0), wrapped, font=font, spacing=14, align="center")
-    width = bbox[2] - bbox[0] + padding * 2
-    height = bbox[3] - bbox[1] + padding * 2
+    width = math.ceil(bbox[2] - bbox[0]) + padding * 2
+    height = math.ceil(bbox[3] - bbox[1]) + padding * 2
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
     draw.rounded_rectangle(
