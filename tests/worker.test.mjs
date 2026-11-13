@@ -81,7 +81,7 @@ function createEnv(options = {}) {
   const AI = {
     async run(model, args) {
       aiCalls += 1;
-      assert.equal(model, "@cf/zai-org/glm-4.7-flash");
+      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct");
       assert.equal(args.response_format.type, "json_object");
       if (options.aiError) throw options.aiError;
       return { response: JSON.stringify(options.aiItems ?? { items: expectedItems }) };
