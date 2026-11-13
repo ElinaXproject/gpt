@@ -33,6 +33,7 @@ jobs:
       TIKTOK_PIEKNEMEDIA_REFRESH_TOKEN: ${{ secrets.TIKTOK_PIEKNEMEDIA_REFRESH_TOKEN }}
       TIKTOK_OCENIONONA6_REFRESH_TOKEN: ${{ secrets.TIKTOK_OCENIONONA6_REFRESH_TOKEN }}
       AUTORED_TOKEN_ENCRYPTION_KEY: ${{ secrets.AUTORED_TOKEN_ENCRYPTION_KEY }}
+      AUTORED_ARTIFACT_AGE_IDENTITY: ${{ secrets.AUTORED_ARTIFACT_AGE_IDENTITY }}
       TIKTOK_APP_AUDITED: ${{ vars.TIKTOK_APP_AUDITED }}
       YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
       YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -49,6 +50,10 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check -r requirements-autored.txt
           python -m pip check
+      - name: Install age encryption utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age
       - name: Verify required D1 credentials
         id: gate
         run: |
