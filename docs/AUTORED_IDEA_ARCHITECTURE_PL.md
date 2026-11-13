@@ -101,6 +101,35 @@ Limity darmowego planu według aktualnej dokumentacji Cloudflare:
 - Cloudflare Worker nie ma jeszcze poświadczeń Publora, Metricool, TikTok ani YouTube. Nie ma adapterów publikacji; nie wykonuje publicznych postów.
 - Activepieces: istniejący projekt ma tabele, ale 0 aktywnych flow i 0 połączeń. Pozostaje narzędziem pomocniczym/administracyjnym, nie głównym orkiestratorem produkcyjnym. Nie uruchamiać równolegle n8n i Activepieces dla tego samego procesu.
 
+## 5A. Zweryfikowane ograniczenia integracji publikacyjnych (2026-11-13)
+
+### TikTok — oficjalny Content Posting API
+- Wymagane są aplikacja developerska, produkt Content Posting API, zatwierdzony scope `video.publish` oraz autoryzacja właściciela każdego konta.
+- Przed publikacją aplikacja musi pobrać creator info i respektować opcje prywatności zwrócone dla konta.
+- Nieaudytowana aplikacja może publikować wyłącznie materiały prywatne; publikacja publiczna wymaga audytu aplikacji TikTok.
+- Token użytkownika ma limit 6 wywołań inicjujących publikację na minutę; upload URL jest ważny 1 godzinę.
+- Nie wolno omijać wymagań aplikacji, scope ani audytu. Jeśli audyt nie zostanie przyznany, Direct Post pozostaje trybem prywatnym/testowym.
+- TikTok wymaga, aby treści udostępniane przez integracje nie zawierały niechcianych znaków wodnych, logo ani promocyjnych nakładek.
+
+Źródła: https://developers.tiktok.com/docs/en/content-posting-api-get-started ; https://developers.tiktok.com/docs/en/content-posting-api-reference-direct-post ; https://developers.tiktok.com/docs/en/content-sharing-guidelines
+
+### YouTube — Data API
+- Upload przez `videos.insert` wymaga OAuth z zakresem `youtube.upload` lub szerszym, odpowiednim zakresem.
+- Domyślny limit API obejmuje 100 wywołań `videos.insert` dziennie w osobnym bucket; quota resetuje się o północy czasu Pacific.
+- Wymagane jest potwierdzenie, że OAuth i channel ID wskazują dokładnie kanał `@MemoryAgent-r3c`. Obecne mapowanie Metricool nie przechodzi tej kontroli.
+- Nie używać kanału o innym ID ani nie wykonywać uploadu testowego na cudzym koncie.
+
+Źródła: https://developers.google.com/youtube/data/reference/rest/v3/videos/insert ; https://developers.google.com/youtube/data/determine_quota_cost
+
+### Publora — darmowy plan i API
+- Dokumentacja Publora potwierdza darmowy Starter z limitem 15 publikacji miesięcznie, 3 podłączonymi kontami, maksymalnie 3 zaplanowanymi postami naraz i horyzontem do 7 dni.
+- API wymaga klucza `x-publora-key`; użytkownik musi utworzyć klucz ręcznie. Nie wolno wpisywać go do repozytorium, logów ani kodu klienta.
+- Publora obsługuje idempotency key, lecz retencja deduplikacji jest ograniczona czasowo; AUTORED IDEA nadal musi prowadzić własny rejestr identyfikatorów i weryfikować status po timeout.
+- Obecne konto ma aktywne połączenie TikTok `@pieknemedia`. Workspace/Agency nie jest skonfigurowany.
+- Limit 15 publikacji miesięcznie jest niewystarczający dla codziennej publikacji na wszystkich trzech profilach. Nie zakładać większej przepustowości bez potwierdzonego darmowego limitu innego dostawcy.
+
+Źródła: https://docs.publora.com/getting-started ; https://docs.publora.com/endpoints/create-post ; https://docs.publora.com/guides/scheduling
+
 ## 6. Model danych
 
 Minimalne encje:
