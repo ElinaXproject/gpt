@@ -68,7 +68,7 @@
 
 1. Brak adapterów publikacji dla Publora, Metricool, TikTok i YouTube.
 2. Brak poświadczeń platform publikacyjnych w Workerze.
-3. YouTube handle `@memoryagent-r3c` został potwierdzony w vidIQ dla kanału `Memory Agent`; zgodność z ID w Metricool nadal wymaga niezależnego mapowania.
+3. vidIQ potwierdził kanał `Memory Agent`, handle `@memoryagent-r3c`, ID `UCOE1EX9WZGDesaJNYIEhj7g`; Metricool wskazuje inne ID `UCRmmEQysOmUbs8mpZEOgtLw`, więc mapowanie YouTube jest BLOCKED i publikacja przez Metricool zabroniona do czasu naprawy.
 4. Brak renderera i testów FFmpeg.
 5. Brak potwierdzonego darmowego sposobu generowania obrazów/wideo w wymaganej skali.
 6. Brak bezpiecznego, odseparowanego miejsca backupu i testu restore.
