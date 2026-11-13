@@ -151,6 +151,15 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         )
         self.assertEqual([b"0123456789", b"012345678901234"], [request.data for request in captured[3:5]])
 
+    def test_publish_status_can_be_checked_for_pending_job_reconciliation(self):
+        publisher, captured = self.publisher([
+            FakeResponse({"access_token": "access"}),
+            FakeResponse({"data": {"status": "PUBLISH_COMPLETE"}}),
+        ], audited=True)
+        self.assertEqual("PUBLISH_COMPLETE", publisher.get_publish_status("publish-existing"))
+        self.assertEqual(2, len(captured))
+        self.assertIn("/status/fetch/", captured[1].full_url)
+
     def test_creator_account_mismatch_blocks_before_video_init(self):
         responses = [
             FakeResponse({"access_token": "access"}),
