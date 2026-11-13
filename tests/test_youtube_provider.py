@@ -63,7 +63,7 @@ class YouTubeUploaderTests(unittest.TestCase):
         responses = [
             FakeResponse({"access_token": "access-token"}),
             FakeResponse({"items": [{"id": EXPECTED_MEMORY_AGENT_CHANNEL_ID}]}),
-            FakeResponse({}, status=200, headers={"Location": "https://upload.youtube.test/session/1"}),
+            FakeResponse({}, status=200, headers={"Location": "https://www.googleapis.com/upload/youtube/v3/videos?upload_id=1"}),
             FakeResponse({
                 "id": "video-123",
                 "status": {"privacyStatus": "private", "publishAt": expected_publish_at}
@@ -90,6 +90,25 @@ class YouTubeUploaderTests(unittest.TestCase):
         self.assertEqual("private", upload_body["status"]["privacyStatus"])
         self.assertEqual("PUT", captured[3].get_method())
         self.assertIn("content-range", {name.lower() for name, _value in captured[3].header_items()})
+
+    def test_untrusted_resumable_upload_host_is_rejected(self):
+        metadata = self.metadata()
+        responses = [
+            FakeResponse({"access_token": "access-token"}),
+            FakeResponse({"items": [{"id": EXPECTED_MEMORY_AGENT_CHANNEL_ID}]}),
+            FakeResponse({}, status=200, headers={"Location": "https://attacker.example/session/1"}),
+        ]
+        def opener(request, timeout=60):
+            return responses.pop(0)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "test.mp4"
+            media.write_bytes(b"video-bytes")
+            client = YouTubeUploader(
+                client_id="id", client_secret="secret", refresh_token="refresh",
+                api_audited=True, opener=opener
+            )
+            with self.assertRaisesRegex(YouTubeError, "unsafe_resumable_upload_url"):
+                client.upload_and_schedule(metadata, media)
 
     def test_wrong_channel_id_blocks_before_upload(self):
         responses = [
