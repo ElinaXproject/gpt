@@ -1,0 +1,117 @@
+name: AUTORED IDEA package, encrypt and schedule
+description: Validate a rendered MP4, bind it to a reviewed D1 item, encrypt it, upload the encrypted artifact and create the publication job.
+inputs:
+  content-id:
+    description: Existing D1 content item ID
+    required: true
+  profile-id:
+    description: Approved AUTORED IDEA profile ID
+    required: true
+  provider:
+    description: Native provider adapter
+    required: true
+  media-path:
+    description: Path to the rendered MP4 in the current job workspace
+    required: true
+  scheduled-at:
+    description: ISO-8601 scheduled time including timezone
+    required: true
+  privacy-level:
+    description: TikTok privacy level; defaults to SELF_ONLY
+    required: false
+    default: SELF_ONLY
+  audience-classification:
+    description: Required for YouTube; made_for_kids or not_made_for_kids
+    required: false
+  music-embedded:
+    description: Set true only when licensed audio is embedded in TikTok video
+    required: false
+    default: "false"
+  music-license-reference:
+    description: Verifiable license reference for embedded TikTok audio
+    required: false
+outputs:
+  artifact-id:
+    description: GitHub Actions artifact ID for the encrypted media bundle
+    value: ${{ steps.upload.outputs.artifact-id }}
+  job-id:
+    description: D1 publication job ID
+    value: ${{ steps.schedule.outputs.job-id }}
+runs:
+  using: composite
+  steps:
+    - name: Install FFmpeg and age
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg age
+    - name: Install pinned Python dependencies
+      shell: bash
+      run: |
+        python -m pip install --disable-pip-version-check -r requirements-autored.txt
+        python -m pip check
+    - name: Attach verified media metadata
+      shell: bash
+      env:
+        CONTENT_ID: ${{ inputs.content-id }}
+        PROFILE_ID: ${{ inputs.profile-id }}
+        PROVIDER: ${{ inputs.provider }}
+        MEDIA_PATH: ${{ inputs.media-path }}
+        MUSIC_EMBEDDED: ${{ inputs.music-embedded }}
+        MUSIC_LICENSE_REFERENCE: ${{ inputs.music-license-reference }}
+      run: |
+        if [[ "$PROVIDER" == "tiktok_direct" ]]; then
+          if [[ "$MUSIC_EMBEDDED" != "true" ]]; then
+            echo "::error::TikTok video must contain licensed embedded audio."
+            exit 1
+          fi
+          python scripts/attach_media_metadata.py --content-id "$CONTENT_ID" --profile-id "$PROFILE_ID" --media "$MEDIA_PATH" --music-embedded --music-license-reference "$MUSIC_LICENSE_REFERENCE"
+        else
+          python scripts/attach_media_metadata.py --content-id "$CONTENT_ID" --profile-id "$PROFILE_ID" --media "$MEDIA_PATH"
+        fi
+    - name: Create provider manifest
+      shell: bash
+      env:
+        CONTENT_ID: ${{ inputs.content-id }}
+        PROFILE_ID: ${{ inputs.profile-id }}
+        PROVIDER: ${{ inputs.provider }}
+        MEDIA_PATH: ${{ inputs.media-path }}
+        SCHEDULED_AT: ${{ inputs.scheduled-at }}
+        PRIVACY_LEVEL: ${{ inputs.privacy-level }}
+        AUDIENCE_CLASSIFICATION: ${{ inputs.audience-classification }}
+      run: |
+        args=(--content-id "$CONTENT_ID" --profile-id "$PROFILE_ID" --provider "$PROVIDER" --media "$MEDIA_PATH" --scheduled-at "$SCHEDULED_AT" --output manifest.json --privacy-level "$PRIVACY_LEVEL")
+        if [[ "$PROVIDER" == "youtube_direct" ]]; then
+          if [[ -z "$AUDIENCE_CLASSIFICATION" ]]; then
+            echo "::error::YouTube audience classification is required."
+            exit 1
+          fi
+          args+=(--audience-classification "$AUDIENCE_CLASSIFICATION")
+        fi
+        python scripts/create_publication_manifest.py "${args[@]}"
+    - name: Encrypt complete media bundle
+      shell: bash
+      env:
+        MEDIA_PATH: ${{ inputs.media-path }}
+      run: |
+        python scripts/create_media_artifact.py --manifest manifest.json --media "$MEDIA_PATH" --output media_bundle.zip.age
+    - name: Upload encrypted bundle only
+      id: upload
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: autored-media-${{ inputs.content-id }}-${{ github.run_id }}
+        path: media_bundle.zip.age
+        if-no-files-found: error
+        retention-days: 7
+    - name: Create D1 publication job
+      id: schedule
+      shell: bash
+      env:
+        CONTENT_ID: ${{ inputs.content-id }}
+        PROVIDER: ${{ inputs.provider }}
+        ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+      run: |
+        result="$(python scripts/schedule_content.py --manifest manifest.json --provider "$PROVIDER" --artifact-id "$ARTIFACT_ID")"
+        echo "$result"
+        job_id="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["job_id"])' "$result")"
+        echo "job-id=$job_id" >> "$GITHUB_OUTPUT"
