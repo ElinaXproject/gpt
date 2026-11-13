@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 import os
 import urllib.error
 import urllib.request
 from datetime import datetime
 from typing import Any
+
+from .factcheck import Claim, Evidence, FactCheckReport
 
 
 ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "6a685fc3e19dd4a1cd85c3fe6711d73b")
@@ -19,6 +22,49 @@ class D1Error(RuntimeError):
     def __init__(self, code: str):
         self.code = code
         super().__init__("d1_" + code)
+
+
+def _allowed_research_domains() -> set[str]:
+    config_path = Path(__file__).resolve().parents[1] / "config" / "research_feeds.json"
+    try:
+        feeds = json.loads(config_path.read_text(encoding="utf-8"))
+        return {
+            str(domain).lower().removeprefix("www.")
+            for feed in feeds
+            for domain in feed.get("allowed_domains", [])
+        }
+    except (OSError, json.JSONDecodeError, TypeError):
+        raise D1Error("research_domain_allowlist_unavailable") from None
+
+
+def _fact_check_report_from_json(raw: str) -> FactCheckReport:
+    try:
+        payload = json.loads(raw)
+        claims = tuple(
+            Claim(str(item["claim_id"]), str(item["text"]))
+            for item in payload["claims"]
+        )
+        evidence = tuple(
+            Evidence(
+                url=str(item["url"]),
+                title=str(item["title"]),
+                published_at=str(item["published_at"]),
+                supports_claim_ids=tuple(str(value) for value in item["supports_claim_ids"]),
+                support_type=str(item.get("support_type", "direct")),
+            )
+            for item in payload["evidence"]
+        )
+        return FactCheckReport(
+            profile_key=str(payload["profile_key"]),
+            reviewed_at=str(payload["reviewed_at"]),
+            reviewer=str(payload["reviewer"]),
+            reviewer_type=str(payload["reviewer_type"]),
+            decision=str(payload["decision"]),
+            claims=claims,
+            evidence=evidence,
+        )
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        raise D1Error("fact_check_report_invalid_json") from None
 
 
 class D1Client:
@@ -65,10 +111,63 @@ class D1Client:
             raise D1Error("statement_failed")
         return first
 
+    def record_fact_check_report(self, content_id: str, profile_id: str, report: FactCheckReport) -> str:
+        rows = self.query(
+            "SELECT profile_id, status FROM content_items WHERE id=?",
+            [content_id],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("content_item_not_found")
+        if rows[0].get("profile_id") != profile_id or report.profile_key != profile_id:
+            raise D1Error("content_profile_mismatch")
+        if report.reviewer_type != "human":
+            raise D1Error("fact_check_human_review_required")
+        errors = report.validate(_allowed_research_domains())
+        if errors:
+            raise D1Error("fact_check_report_invalid:" + ",".join(errors)[:80])
+        reference = report.reference()
+        payload = {
+            "profile_key": report.profile_key,
+            "reviewed_at": report.reviewed_at,
+            "reviewer": report.reviewer,
+            "reviewer_type": report.reviewer_type,
+            "decision": report.decision,
+            "claims": [{"claim_id": claim.claim_id, "text": claim.text} for claim in report.claims],
+            "evidence": [
+                {
+                    "url": item.url,
+                    "title": item.title,
+                    "published_at": item.published_at,
+                    "supports_claim_ids": list(item.supports_claim_ids),
+                    "support_type": item.support_type,
+                }
+                for item in report.evidence
+            ],
+        }
+        evidence_urls = [item.url for item in report.evidence]
+        evidence_dates = [item.published_at for item in report.evidence]
+        result = self.query(
+            "UPDATE content_items SET fact_check_passed=1, fact_check_reference=?, fact_check_report_json=?, "
+            "source_urls_json=?, source_published_at_json=?, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND profile_id=? AND status IN ('draft','ready','scheduled')",
+            [
+                reference,
+                json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                json.dumps(evidence_urls, ensure_ascii=False),
+                json.dumps(evidence_dates, ensure_ascii=False),
+                content_id,
+                profile_id,
+            ],
+        )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("fact_check_report_persist_rejected")
+        return reference
+
     def _validate_content_for_publish(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
         row = self.query(
             "SELECT id, profile_id, status, safety_review_status, rights_reference, "
             "ai_disclosure_required, ai_disclosure_set, fact_check_passed, fact_check_reference, "
+            "fact_check_report_json, source_urls_json, source_published_at_json, "
             "music_embedded, music_license_reference FROM content_items WHERE id = ?",
             [content_id],
         ).get("results", [])
@@ -88,6 +187,23 @@ class D1Client:
         if profile_id in {"tiktok_ocenionona6", "youtube_memoryagent"}:
             if item.get("fact_check_passed") != 1 or not str(item.get("fact_check_reference") or "").strip():
                 raise D1Error("fact_check_not_passed")
+            report = _fact_check_report_from_json(str(item.get("fact_check_report_json") or ""))
+            if report.profile_key != profile_id or report.reviewer_type != "human":
+                raise D1Error("fact_check_human_review_required")
+            errors = report.validate(_allowed_research_domains())
+            if errors:
+                raise D1Error("fact_check_report_invalid:" + ",".join(errors)[:80])
+            if report.reference() != item.get("fact_check_reference"):
+                raise D1Error("fact_check_reference_mismatch")
+            try:
+                stored_urls = json.loads(str(item.get("source_urls_json") or "[]"))
+                stored_dates = json.loads(str(item.get("source_published_at_json") or "[]"))
+            except json.JSONDecodeError:
+                raise D1Error("fact_check_source_metadata_invalid") from None
+            if stored_urls != [source.url for source in report.evidence]:
+                raise D1Error("fact_check_source_urls_mismatch")
+            if stored_dates != [source.published_at for source in report.evidence]:
+                raise D1Error("fact_check_source_dates_mismatch")
         if provider == "tiktok_direct":
             if item.get("music_embedded") != 1 or not str(item.get("music_license_reference") or "").strip():
                 raise D1Error("licensed_embedded_music_required")
