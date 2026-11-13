@@ -40,11 +40,13 @@ def _manifest_matches(job: dict[str, Any], manifest: dict[str, Any]) -> bool:
 def _provider_ready(provider: str, env: dict[str, str]) -> bool:
     if provider == "tiktok_direct":
         return all(env.get(key) for key in (
-            "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "AUTORED_TOKEN_ENCRYPTION_KEY"
+            "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "AUTORED_TOKEN_ENCRYPTION_KEY",
+            "AUTORED_ARTIFACT_AGE_IDENTITY"
         ))
     if provider == "youtube_direct":
         return all(env.get(key) for key in (
-            "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"
+            "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN",
+            "AUTORED_ARTIFACT_AGE_IDENTITY"
         ))
     return False
 
