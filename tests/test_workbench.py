@@ -182,6 +182,8 @@ class WorkbenchRepositoryTests(unittest.TestCase):
     def test_renderer_uses_commercially_cleared_polish_voice(self):
         renderer = self.read("scripts/render_vertical_video.py")
         self.assertIn('VOICE = "pl_PL-darkman-medium"', renderer)
+        self.assertIn("from PIL import Image, ImageDraw, ImageFont", renderer)
+        self.assertIn("make_text_overlay", renderer)
         self.assertIn("music_license_reference_required", renderer)
         self.assertIn("licensed_music_required", renderer)
         self.assertIn('"libx264"', renderer)
