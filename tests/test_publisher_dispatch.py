@@ -74,6 +74,16 @@ class PublisherDispatchTests(unittest.TestCase):
         self.assertEqual(1, result["skipped"])
         self.assertEqual([], d1.failed)
 
+    def test_missing_age_identity_skips_provider_before_download(self):
+        d1 = FakeD1(tiktok=[make_job()])
+        result = run_dispatch(
+            d1=d1, now_utc="2026-11-14T12:00:00Z",
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            downloader=lambda *_args: self.fail("must not download without decryption identity")
+        )
+        self.assertEqual(1, result["skipped"])
+        self.assertEqual([], d1.failed)
+
     def test_manifest_mismatch_blocks_job_before_runner(self):
         d1 = FakeD1(tiktok=[make_job()])
         manifest = {
