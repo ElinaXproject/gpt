@@ -9,12 +9,13 @@ from typing import Any
 
 from publora_client import PubloraClient, PubloraError
 from publora_pipeline import PROFILES
+from autored.d1_client import D1Client, D1Error
 
 
 EXPECTED_YOUTUBE_PLATFORM_ID = "youtube-UCOE1EX9WZGDesaJNYIEhj7g"
 
 
-def run_preflight(client: Any) -> dict[str, Any]:
+def run_preflight(client: Any, d1_client: Any | None = None) -> dict[str, Any]:
     results = []
     for profile_id, profile in PROFILES.items():
         try:
@@ -45,26 +46,48 @@ def run_preflight(client: Any) -> dict[str, Any]:
                 "reason": exc.code,
             })
     ready = sum(1 for item in results if item["status"] == "ready")
+    d1_result = {"status": "not_checked"}
+    if d1_client is not None:
+        try:
+            rows = d1_client.query("SELECT handle FROM profiles WHERE enabled=1", []).get("results", [])
+            actual = {row.get("handle") for row in rows}
+            expected = {profile["handle"] for profile in PROFILES.values()}
+            missing = sorted(expected - actual)
+            d1_result = {
+                "status": "ready" if not missing else "incomplete",
+                "expected_profiles": len(expected),
+                "found_profiles": len(actual & expected),
+                "missing_profiles": missing,
+            }
+        except D1Error as exc:
+            d1_result = {"status": "blocked", "reason": exc.code}
+    all_ready = ready == len(PROFILES) and d1_result["status"] == "ready"
     return {
-        "status": "ready" if ready == len(PROFILES) else "incomplete",
+        "status": "ready" if all_ready else "incomplete",
         "ready_profiles": ready,
         "total_profiles": len(PROFILES),
+        "d1_database": d1_result,
         "publishing_performed": False,
         "profiles": results,
     }
 
 
 def main() -> int:
-    if not os.environ.get("PUBLORA_API_KEY"):
+    missing_secrets = [
+        name for name in ("PUBLORA_API_KEY", "CLOUDFLARE_API_TOKEN")
+        if not os.environ.get(name)
+    ]
+    if missing_secrets:
         print(json.dumps({
             "status": "blocked",
-            "reason": "PUBLORA_API_KEY_secret_missing",
+            "reason": "required_secrets_missing",
+            "missing": missing_secrets,
             "publishing_performed": False,
         }, indent=2))
         return 2
     try:
-        result = run_preflight(PubloraClient())
-    except PubloraError as exc:
+        result = run_preflight(PubloraClient(), D1Client())
+    except (PubloraError, D1Error) as exc:
         print(json.dumps({"status": "blocked", "reason": exc.code, "publishing_performed": False}))
         return 2
     print(json.dumps(result, ensure_ascii=False, indent=2))
