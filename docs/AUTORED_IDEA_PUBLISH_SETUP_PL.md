@@ -35,19 +35,43 @@ Workflow:
 - sprawdzi mapowanie trzech profili w D1,
 - sprawdzi dokładne uchwyty i stan połączeń,
 - sprawdzi YouTube channel ID,
-- wywoła test połączenia dostawcy,
+- odczyta plan, dozwolone platformy, pozostały limit miesięczny, wolne sloty kolejki i horyzont planowania,
 - nie utworzy posta i nie wykona publikacji.
 
 Wymagany wynik: `status: ready`, `ready_profiles: 3`.
 
 ## 4. Limity darmowego planu
-Według aktualnej dokumentacji Publora Starter obejmuje 3 konta, 15 publikacji miesięcznie, maksymalnie 3 zaplanowane posty naraz i horyzont 7 dni. Nie zakładać, że wystarczy to do codziennej publikacji na wszystkich profilach. Nie włączać płatnego planu ani nie dodawać metody płatności w ramach tego projektu.
+Aktualny snapshot Publora Starter: 15 platform-postów miesięcznie łącznie, 3 aktywne sloty kolejki, horyzont 7 dni. Limit jest niewystarczający do codziennej publikacji na trzech profilach. Publora pozostaje adapterem testowym/fallbackiem; nie wolno obchodzić limitów ani aktywować planu płatnego.
 
-## 5. Bramka bezpieczeństwa
+## 5. Natywne API — docelowa ścieżka bez limitu Publora
+
+### TikTok
+- Wymagane: oficjalna aplikacja Content Posting API, OAuth każdego właściciela konta i scope `video.publish`.
+- Publiczne Direct Post wymaga oficjalnego audytu aplikacji TikTok. Nieaudytowana aplikacja w adapterze AUTORED może używać wyłącznie `SELF_ONLY`; kod blokuje publikację publiczną.
+- Adapter sprawdza konto twórcy, dostępne ustawienia prywatności, limit długości filmu, termin publikacji i licencjonowany dźwięk osadzony w pliku.
+- Wymagane sekrety GitHub Actions: `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_PIEKNEMEDIA_REFRESH_TOKEN`, `TIKTOK_OCENIONONA6_REFRESH_TOKEN`, `AUTORED_TOKEN_ENCRYPTION_KEY`.
+- `TIKTOK_APP_AUDITED=true` wolno ustawić wyłącznie po rzeczywistym zatwierdzeniu aplikacji przez TikTok. Domyślnie pozostaje false.
+
+### YouTube
+- Wymagane: Google OAuth z zakresami `youtube.upload` i `youtube.readonly`, autoryzacja dokładnego kanału `@MemoryAgent-r3c` i channel ID `UCOE1EX9WZGDesaJNYIEhj7g`.
+- Adapter sprawdza channel ID przed uploadem, używa resumable upload i planuje publikację przez `status.publishAt`.
+- Publiczny upload jest zablokowany, dopóki projekt API nie przejdzie wymaganego audytu/verification. `YOUTUBE_API_AUDITED=true` wolno ustawić wyłącznie po oficjalnym zatwierdzeniu.
+- Wymagane sekrety: `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`.
+
+### Tokeny i bezpieczeństwo
+- Refresh tokeny TikTok po pierwszym użyciu są przechowywane w D1 jako AES-256-GCM ciphertext; klucz `AUTORED_TOKEN_ENCRYPTION_KEY` to Base64 z 32 losowych bajtów.
+- Klucz generuje się lokalnie: `python -c "import secrets,base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())"`.
+- Nie wklejaj tokenów ani kluczy do rozmowy, repozytorium, issue lub logów.
+- Jeżeli regulamin platformy wymaga pełnoletniego właściciela aplikacji lub dodatkowej zgody, konfigurację wykonuje uprawniony dorosły właściciel. System nie obchodzi limitów wieku, audytu, OAuth ani weryfikacji.
+
+## 6. Bramka bezpieczeństwa
+
+## 6. Bramka bezpieczeństwa
 Do czasu przejścia preflight:
 - nie uruchamiać automatycznej publikacji,
 - nie używać Metricool dla YouTube,
 - nie tworzyć postów testowych na profilach publicznych,
+- nie ustawiać flag audytu na true bez oficjalnej decyzji platformy,
 - nie umieszczać sekretów w repozytorium,
 - nie omijać limitów, OAuth, audytu ani zasad platform.
 
