@@ -10,6 +10,8 @@ Ten dokument opisuje jedyne ręczne czynności wymagane do uruchomienia bezpiecz
 4. Nazwa sekretu musi być dokładnie `PUBLORA_API_KEY`.
 5. Wartością jest klucz utworzony w Publora.
 
+Dodatkowo utwórz Cloudflare API Token z minimalnym uprawnieniem D1 do odczytu/zapisu bazy `autored_idea_db` (wymagane do rejestracji statusów publikacji i eksportu backupu) i zapisz go jako GitHub Actions secret `CLOUDFLARE_API_TOKEN`. Nie używaj Global API Key.
+
 Klient AUTORED IDEA odczytuje klucz wyłącznie ze zmiennej środowiskowej. Nie ma klucza zapisanego w repozytorium ani w Cloudflare Workerze.
 
 ## 2. Połączenia kont
@@ -30,6 +32,7 @@ Po dodaniu sekretu i połączeniu kont:
 
 Workflow:
 - odczyta listę połączeń,
+- sprawdzi mapowanie trzech profili w D1,
 - sprawdzi dokładne uchwyty i stan połączeń,
 - sprawdzi YouTube channel ID,
 - wywoła test połączenia dostawcy,
