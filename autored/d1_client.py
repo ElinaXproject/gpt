@@ -191,6 +191,16 @@ class D1Client:
         )
         if (result.get("meta") or {}).get("changes", 0) != 1:
             raise D1Error("safety_review_persist_rejected")
+        self.query(
+            "INSERT OR IGNORE INTO events (id, event_type, profile_id, content_id, detail_json) "
+            "VALUES (?, 'human_safety_review', ?, ?, ?)",
+            [
+                "event_safety_" + reference,
+                profile_id,
+                content_id,
+                json.dumps({"reference": reference, "reviewer": reviewer, "decision": decision, "status": status}, ensure_ascii=False),
+            ],
+        )
         return status, reference
 
     def record_fact_check_report(self, content_id: str, profile_id: str, report: FactCheckReport) -> str:
@@ -243,6 +253,16 @@ class D1Client:
         )
         if (result.get("meta") or {}).get("changes", 0) != 1:
             raise D1Error("fact_check_report_persist_rejected")
+        self.query(
+            "INSERT OR IGNORE INTO events (id, event_type, profile_id, content_id, detail_json) "
+            "VALUES (?, 'human_fact_check', ?, ?, ?)",
+            [
+                "event_factcheck_" + reference,
+                profile_id,
+                content_id,
+                json.dumps({"reference": reference, "reviewer": report.reviewer, "decision": report.decision, "evidence_count": len(report.evidence)}, ensure_ascii=False),
+            ],
+        )
         return reference
 
     def _validate_content_for_publish(self, content_id: str, profile_id: str, provider: str) -> dict[str, Any]:
