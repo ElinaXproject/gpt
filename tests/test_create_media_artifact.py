@@ -60,7 +60,7 @@ class CreateMediaArtifactTests(unittest.TestCase):
                 result = create_encrypted_bundle(manifest, media, output, recipient="age1recipient")
             self.assertEqual("encrypted", "encrypted" if output.exists() else "")
             self.assertEqual(hashlib.sha256(b"encrypted-payload").hexdigest(), result["encrypted_sha256"])
-            self.assertEqual(["manifest.json", "clip.mp4", "media_bundle.zip.age"], sorted(p.name for p in root.iterdir()))
+            self.assertEqual(["clip.mp4", "manifest.json", "media_bundle.zip.age"], sorted(p.name for p in root.iterdir()))
 
 
 if __name__ == "__main__":
