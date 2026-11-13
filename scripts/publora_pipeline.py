@@ -189,6 +189,9 @@ def main() -> int:
     except (OSError, json.JSONDecodeError):
         print(json.dumps({"status": "blocked", "error": "manifest_read_failed"}))
         return 2
+    except D1Error as exc:
+        print(json.dumps({"status": "blocked", "error": exc.code}))
+        return 2
     except PubloraError as exc:
         print(json.dumps({"status": "blocked", "error": exc.code, "http_status": exc.status}))
         return 2
