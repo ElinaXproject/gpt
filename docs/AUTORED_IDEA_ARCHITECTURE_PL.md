@@ -64,22 +64,42 @@ flowchart TD
 | Recovery | Retry bez duplikatów, dead-letter queue, rollback | test odtworzenia i odzyskania stanu |
 | Documentation | Dziennik zmian i decyzji | każda zmiana ma wpis i dowód |
 
-## 5. Wstępny dobór technologii
+## 5. Wybrany stos techniczny
 
-### Orkiestracja
-- **Activepieces**: istniejący projekt i tabele mogą pozostać warstwą operacyjną. Obecnie projekt nie ma przepływów ani połączeń. Darmowy plan Cloud ma limit kredytów; self-hosting wymaga stale działającej infrastruktury.
-- **GitHub Actions**: CI, testy, walidacja dokumentacji i kontrolowane zadania pomocnicze. Nie traktować harmonogramu Actions jako gwarantowanego zegara publikacji.
-- Nie wdrażać równolegle n8n i Activepieces. Jeden orkiestrator na produkcję ogranicza złożoność.
+### Backend i harmonogram — Cloudflare Workers Free
 
-### Produkcja mediów
-- **FFmpeg**: renderowanie, konwersja, normalizacja audio/wideo, napisy i miniatury.
-- Generowanie AI: najpierw wykryć dostępny bezpłatny sposób i mierzalne limity. Nie wpisywać płatnego API jako wymaganego komponentu. Model lokalny wymaga sprzętu i nie jest „bezpłatny” w sensie kosztu energii/sprzętu.
-- Każdy zasób ma jawne źródło i status licencji.
+Wybrano Cloudflare Worker jako główny backend, ponieważ konto Cloudflare jest już dostępne, a darmowe limity są wystarczające dla lekkiej orkiestracji i metadanych:
+- **Worker:** `autored-idea-api` — wdrożony; obsługuje endpoint health i zdarzenie scheduled.
+- **Cron:** `0 7,8 * * *` UTC; kod wykonuje pracę wyłącznie o 09:00 Europe/Warsaw, z kontrolą zmiany czasu letniego/zimowego.
+- **D1:** `autored_idea_db`, jurysdykcja EU, region EEUR; tabele profili, treści, zadań publikacji, limitów, uruchomień i zdarzeń.
+- **Workers AI:** `@cf/zai-org/glm-4.7-flash`; test API zwrócił poprawny JSON przy `response_format=json_object`.
+- **KV i R2:** nieużywane. Nie przechowujemy dużych plików mediów w bazie ani w publicznym repozytorium.
 
-### Publikacja
-- TikTok: oficjalny Content Posting API po zatwierdzeniu aplikacji i scope `video.publish`; przed audytem treści są ograniczone do prywatnych.
-- YouTube: YouTube Data API `videos.insert` z OAuth 2.0 użytkownika i scope upload; trzeba zweryfikować limity i status projektu Google Cloud.
-- Publora/Metricool: używać tylko w ramach realnych planów, kont i limitów. Nie zakładać, że ich darmowe limity wystarczą na docelową liczbę publikacji.
+Limity darmowego planu według aktualnej dokumentacji Cloudflare:
+- Workers Free: 100 000 żądań dziennie, 10 ms CPU na zwykłe wywołanie, 128 MB pamięci i maksymalnie 5 Cron Triggers na konto.
+- D1 Free: 5 mln odczytanych wierszy dziennie, 100 tys. zapisanych wierszy dziennie i 5 GB łącznej przestrzeni.
+- Workers AI: 10 000 neuronów dziennie bez opłat; po przekroczeniu limitu na planie Free kolejne wywołania są odrzucane, a nie automatycznie płatne.
+- Limity mają być mierzone; po osiągnięciu limitu system przechodzi w bezpieczny stan, nie obchodzi ograniczeń.
+
+Źródła limitów:
+- https://developers.cloudflare.com/workers/platform/limits/
+- https://developers.cloudflare.com/d1/platform/pricing/
+- https://developers.cloudflare.com/workers-ai/platform/pricing/
+- https://developers.cloudflare.com/workers/configuration/cron-triggers/
+
+### CI i produkcja mediów
+
+- **GitHub Actions:** testy regresyjne, kontrola sekretów, walidacja składni Workera i późniejszy pipeline renderowania.
+- **FFmpeg:** planowany renderer uruchamiany na runnerze GitHub Actions; nie uruchamiać FFmpeg w Cloudflare Worker (limity CPU/pamięci).
+- Renderowane pliki mają być przekazywane bezpośrednio do legalnego adaptera publikacyjnego; nie archiwizować ich w publicznym repozytorium.
+- Generowanie obrazów/wideo wymaga osobnej weryfikacji darmowych limitów i licencji; nie zakładać, że darmowe AI API zapewni pełną produkcję wizualną.
+
+### Integracje publikacyjne
+
+- TikTok: obecnie istniejący provider Publora dla `@pieknemedia` oraz Metricool dla `@ocenionona6`; limity planów muszą być odczytywane przed planowaniem. Direct Post API jest alternatywą wyłącznie po oficjalnej autoryzacji i wymaganym zatwierdzeniu aplikacji.
+- YouTube: obecne połączenie kanału w Metricool; mapowanie identyfikatora do `@MemoryAgent-r3` wymaga potwierdzenia. Alternatywa: YouTube Data API/OAuth, po uzyskaniu uprawnień.
+- Cloudflare Worker nie ma jeszcze poświadczeń Publora, Metricool, TikTok ani YouTube. Nie ma adapterów publikacji; nie wykonuje publicznych postów.
+- Activepieces: istniejący projekt ma tabele, ale 0 aktywnych flow i 0 połączeń. Pozostaje narzędziem pomocniczym/administracyjnym, nie głównym orkiestratorem produkcyjnym. Nie uruchamiać równolegle n8n i Activepieces dla tego samego procesu.
 
 ## 6. Model danych
 
