@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Render a vertical 9:16 video using local Polish Piper TTS and FFmpeg.
 
-No cloud TTS, paid API, or unlicensed music is required. A supplied music file
-is accepted only when an explicit license reference is provided.
+No paid API or unlicensed music is required. A supplied music file is accepted
+only when an explicit license reference is provided.
 """
 from __future__ import annotations
 
@@ -16,11 +16,14 @@ import sys
 import textwrap
 from pathlib import Path
 
+from PIL import Image, ImageDraw, ImageFont
+
 
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 30
 VOICE = "pl_PL-darkman-medium"
+FONT = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
 
 
 def run(command: list[str]) -> str:
@@ -72,6 +75,39 @@ def make_captions(script: str, duration: float, path: Path) -> list[tuple[str, f
     return segments
 
 
+def make_text_overlay(
+    text: str,
+    path: Path,
+    font_path: str,
+    font_size: int,
+    wrap_width: int,
+    padding: int = 26,
+) -> None:
+    font = ImageFont.truetype(font_path, font_size)
+    wrapped = textwrap.fill(text, width=wrap_width)
+    probe = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(probe)
+    bbox = draw.multiline_textbbox((0, 0), wrapped, font=font, spacing=14, align="center")
+    width = bbox[2] - bbox[0] + padding * 2
+    height = bbox[3] - bbox[1] + padding * 2
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    draw.rounded_rectangle(
+        (0, 0, width - 1, height - 1),
+        radius=22,
+        fill=(0, 0, 0, 178),
+    )
+    draw.multiline_text(
+        (padding - bbox[0], padding - bbox[1]),
+        wrapped,
+        font=font,
+        fill=(255, 255, 255, 255),
+        spacing=14,
+        align="center",
+    )
+    canvas.save(path, format="PNG")
+
+
 def probe_duration(path: Path) -> float:
     value = run([
         "ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -109,13 +145,9 @@ def render(args: argparse.Namespace) -> dict:
     voice_dir = args.voice_dir.resolve()
     voice_dir.mkdir(parents=True, exist_ok=True)
     narration = workdir / "narration.wav"
-    captions = workdir / "captions.srt"
+    captions_srt = workdir / "captions.srt"
     background = workdir / "background.ppm"
-    title_file = workdir / "title.txt"
-    cta_file = workdir / "cta.txt"
 
-    title_file.write_text(title, encoding="utf-8")
-    cta_file.write_text(cta, encoding="utf-8")
     if args.background:
         if not args.background.is_file():
             raise FileNotFoundError(args.background)
@@ -130,55 +162,79 @@ def render(args: argparse.Namespace) -> dict:
     duration = probe_duration(narration)
     if duration < 5 or duration > 90:
         raise ValueError(f"narration_duration_out_of_range:{duration:.2f}")
-    segments = make_captions(script, duration, captions)
+    segments = make_captions(script, duration, captions_srt)
 
-    font = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
-    caption_filters = []
+    title_overlay = workdir / "title.png"
+    cta_overlay = workdir / "cta.png"
+    make_text_overlay(title, title_overlay, FONT, 58, 24)
+    make_text_overlay(cta, cta_overlay, FONT, 40, 28)
+
+    caption_overlays: list[tuple[Path, float, float]] = []
     for index, (sentence, start, end) in enumerate(segments, start=1):
-        caption_file = workdir / f"caption_{index:02}.txt"
-        caption_file.write_text(textwrap.fill(sentence, width=28), encoding="utf-8")
-        caption_filters.append(
-            f"drawtext=fontfile={font}:textfile={caption_file}:expansion=none:"
-            "fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2:"
-            "box=1:boxcolor=black@0.38:boxborderw=26:line_spacing=14:"
-            f"enable='between(t\\,{start:.3f}\\,{end:.3f})'"
-        )
-    video_filter = ",".join([
-        f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase",
-        f"crop={WIDTH}:{HEIGHT}",
-        f"zoompan=z='min(zoom+0.00035,1.06)':d=1:s={WIDTH}x{HEIGHT}:fps={FPS}",
-        f"drawtext=fontfile={font}:textfile={title_file}:expansion=none:fontcolor=white:fontsize=58:x=(w-text_w)/2:y=125:box=1:boxcolor=black@0.32:boxborderw=26",
-        *caption_filters,
-        f"drawtext=fontfile={font}:textfile={cta_file}:expansion=none:fontcolor=white:fontsize=40:x=(w-text_w)/2:y=h-230:box=1:boxcolor=black@0.38:boxborderw=20"
-    ])
+        caption_path = workdir / f"caption_{index:02}.png"
+        make_text_overlay(sentence, caption_path, FONT, 48, 28)
+        caption_overlays.append((caption_path, start, end))
 
     command = [
         "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
         "-loop", "1", "-framerate", str(FPS), "-i", str(background),
-        "-i", str(narration)
+        "-i", str(narration),
     ]
     if args.music:
         command += ["-stream_loop", "-1", "-i", str(args.music)]
-        filter_complex = (
-            f"[0:v]{video_filter}[v];"
-            "[1:a]loudnorm=I=-16:TP=-1.5:LRA=11[voice];"
-            "[2:a]volume=0.10[music];"
-            "[voice][music]amix=inputs=2:duration=first:dropout_transition=2[a]"
+
+    overlay_paths = [title_overlay] + [item[0] for item in caption_overlays] + [cta_overlay]
+    for overlay_path in overlay_paths:
+        command += ["-loop", "1", "-framerate", str(FPS), "-i", str(overlay_path)]
+
+    overlay_input_index = 3 if args.music else 2
+    filters = [
+        f"[0:v]scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,"
+        f"crop={WIDTH}:{HEIGHT},"
+        f"zoompan=z='min(zoom+0.00035,1.06)':d=1:s={WIDTH}x{HEIGHT}:fps={FPS}[base0]"
+    ]
+    current = "base0"
+
+    filters.append(f"[{overlay_input_index}:v]format=rgba[title]")
+    filters.append(f"[{current}][title]overlay=(W-w)/2:125:shortest=1[base1]")
+    current = "base1"
+    overlay_input_index += 1
+
+    for index, (caption_path, start, end) in enumerate(caption_overlays, start=1):
+        label = f"caption{index}"
+        next_base = f"base{index + 1}"
+        filters.append(f"[{overlay_input_index}:v]format=rgba[{label}]")
+        filters.append(
+            f"[{current}][{label}]overlay=(W-w)/2:(H-h)/2:"
+            f"enable='between(t\\,{start:.3f}\\,{end:.3f})':shortest=1[{next_base}]"
         )
-        command += [
-            "-filter_complex", filter_complex, "-map", "[v]", "-map", "[a]"
-        ]
+        current = next_base
+        overlay_input_index += 1
+
+    filters.append(f"[{overlay_input_index}:v]format=rgba[cta]")
+    filters.append(f"[{current}][cta]overlay=(W-w)/2:H-h-230:shortest=1[v]")
+
+    if args.music:
+        filters.extend([
+            "[1:a]loudnorm=I=-16:TP=-1.5:LRA=11[voice]",
+            "[2:a]volume=0.10[music]",
+            "[voice][music]amix=inputs=2:duration=first:dropout_transition=2,"
+            "aresample=48000,aformat=channel_layouts=stereo[a]",
+        ])
     else:
-        command += [
-            "-vf", video_filter, "-map", "0:v", "-map", "1:a",
-            "-af", "loudnorm=I=-16:TP=-1.5:LRA=11"
-        ]
+        filters.append(
+            "[1:a]loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,"
+            "aformat=channel_layouts=stereo[a]"
+        )
 
     command += [
+        "-filter_complex", ";".join(filters),
+        "-map", "[v]", "-map", "[a]",
         "-t", f"{duration:.3f}", "-r", str(FPS),
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
-        "-movflags", "+faststart", str(args.output)
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+        "-ar", "48000", "-ac", "2", "-movflags", "+faststart",
+        str(args.output)
     ]
     run(command)
 
@@ -191,7 +247,7 @@ def render(args: argparse.Namespace) -> dict:
     audio = next((s for s in streams.get("streams", []) if s.get("codec_type") == "audio"), {})
     if (video.get("width"), video.get("height"), video.get("codec_name")) != (WIDTH, HEIGHT, "h264"):
         raise RuntimeError("video_output_validation_failed")
-    if audio.get("codec_name") != "aac":
+    if audio.get("codec_name") != "aac" or audio.get("sample_rate") != "48000" or audio.get("channels") != 2:
         raise RuntimeError("audio_output_validation_failed")
 
     return {
@@ -201,6 +257,8 @@ def render(args: argparse.Namespace) -> dict:
         "height": video["height"],
         "video_codec": video["codec_name"],
         "audio_codec": audio["codec_name"],
+        "sample_rate": audio["sample_rate"],
+        "channels": audio["channels"],
         "voice": args.voice,
         "music_included": bool(args.music),
         "music_license_ref": music_license_ref if args.music else None,
