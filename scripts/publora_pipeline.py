@@ -161,32 +161,32 @@ def process_manifest(client: Any, item: dict[str, Any], job_store: Any | None = 
     connection = client.resolve_connection(profile["platform"], profile["handle"])
     client.check_schedule_quota(profile["platform"], validated["scheduled_time"])
 
-    create_key = stable_idempotency_key(item["content_id"], item["profile_id"], "create")
-    try:
-        post_group_id = client.create_draft(
-            item["content"],
-            connection["platformId"],
-            idempotency_key=create_key,
-            platform_settings=validated["platform_settings"],
-        )
-    except PubloraError as exc:
-        if exc.code != "network_outcome_unknown":
-            raise
-        # Repeating the identical request with the same key replays the original
-        # response if Publora already created the draft.
-        post_group_id = client.create_draft(
-            item["content"],
-            connection["platformId"],
-            idempotency_key=create_key,
-            platform_settings=validated["platform_settings"],
-        )
-
     upload_path = validated["media_path"]
     normalized_path: Path | None = None
     if profile["platform"] == "tiktok" and item.get("media_mime", "").startswith("image/"):
         normalized_path = normalize_tiktok_photo(upload_path)
         upload_path = normalized_path
+
     try:
+        create_key = stable_idempotency_key(item["content_id"], item["profile_id"], "create")
+        try:
+            post_group_id = client.create_draft(
+                item["content"],
+                connection["platformId"],
+                idempotency_key=create_key,
+                platform_settings=validated["platform_settings"],
+            )
+        except PubloraError as exc:
+            if exc.code != "network_outcome_unknown":
+                raise
+            # Repeating the identical request with the same key replays the original
+            # response if Publora already created the draft.
+            post_group_id = client.create_draft(
+                item["content"],
+                connection["platformId"],
+                idempotency_key=create_key,
+                platform_settings=validated["platform_settings"],
+            )
         client.upload_media(post_group_id, upload_path)
     finally:
         if normalized_path is not None:
