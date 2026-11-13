@@ -23,7 +23,7 @@
 - Potwierdzono tabele aplikacyjne: `profiles`, `content_items`, `daily_runs`, `events`, `publication_jobs`, `quota_ledger`.
 - Potwierdzono kolumnę `daily_run_date` i unikalny indeks `idx_content_daily_profile`.
 - Worker ma handlery `fetch` i `scheduled`.
-- Worker używa modelu `@cf/zai-org/glm-4.7-flash` z `response_format=json_object`.
+- Worker używa modelu `@cf/meta/llama-3.1-8b-instruct` z `response_format=json_object`.
 - Model API przeszedł test prostego wyjścia JSON; zużycie testowe wyniosło 7.3426 neuronów.
 - Dzienny proces ma utworzyć po jednej propozycji tematu dla każdego z trzech profili i zapisać ją jako `idea`.
 - Identyfikatory pomysłów i zdarzeń są deterministyczne; unikalny indeks blokuje duplikaty tego samego profilu w danym dniu.
