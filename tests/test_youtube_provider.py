@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -90,6 +91,42 @@ class YouTubeUploaderTests(unittest.TestCase):
         self.assertEqual("private", upload_body["status"]["privacyStatus"])
         self.assertEqual("PUT", captured[3].get_method())
         self.assertIn("content-range", {name.lower() for name, _value in captured[3].header_items()})
+
+    def test_large_upload_resumes_from_server_range_without_loading_whole_file(self):
+        metadata = self.metadata()
+        scheduled = datetime.fromisoformat(metadata["scheduled_time"])
+        expected_publish_at = scheduled.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+        responses = [
+            FakeResponse({"access_token": "access-token"}),
+            FakeResponse({"items": [{"id": EXPECTED_MEMORY_AGENT_CHANNEL_ID}]}),
+            FakeResponse({}, status=200, headers={"Location": "https://www.googleapis.com/upload/youtube/v3/videos?upload_id=chunked"}),
+            FakeResponse({}, status=308, headers={"Range": "bytes=0-3"}),
+            FakeResponse({}, status=308, headers={"Range": "bytes=0-7"}),
+            FakeResponse({
+                "id": "video-chunked",
+                "status": {"privacyStatus": "private", "publishAt": expected_publish_at}
+            }, status=201),
+        ]
+        captured = []
+        def opener(request, timeout=60):
+            captured.append(request)
+            return responses.pop(0)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "large.mp4"
+            media.write_bytes(b"0123456789")
+            client = YouTubeUploader(
+                client_id="id", client_secret="secret", refresh_token="refresh",
+                api_audited=True, opener=opener
+            )
+            with patch("autored.providers.youtube.UPLOAD_CHUNK_SIZE", 4):
+                result = client.upload_and_schedule(metadata, media)
+        self.assertEqual("video-chunked", result["video_id"])
+        self.assertEqual(6, len(captured))
+        self.assertEqual(
+            ["bytes 0-3/10", "bytes 4-7/10", "bytes 8-9/10"],
+            [captured[index].get_header("Content-range") for index in (3, 4, 5)]
+        )
+        self.assertEqual([b"0123", b"4567", b"89"], [captured[index].data for index in (3, 4, 5)])
 
     def test_untrusted_resumable_upload_host_is_rejected(self):
         metadata = self.metadata()
