@@ -23,9 +23,9 @@ class FakeClient:
         self.calls.append(("resolve", platform, handle))
         return {"platformId": f"{platform}-connected", "connectionStatus": "active"}
 
-    def test_connection(self, platform_id):
-        self.calls.append(("test", platform_id))
-        return {"status": "ok"}
+    def check_schedule_quota(self, platform, scheduled_time):
+        self.calls.append(("quota", platform, scheduled_time))
+        return {"plan": {"key": "starter"}}
 
     def create_draft(self, content, platform_id, *, idempotency_key, platform_settings=None):
         self.calls.append(("draft", content, platform_id, idempotency_key, platform_settings))
@@ -129,7 +129,7 @@ class PubloraPipelineTests(unittest.TestCase):
         result = process_manifest(client, self.base)
         self.assertEqual("scheduled", result["status"])
         self.assertEqual(
-            ["resolve", "test", "draft", "upload", "schedule"],
+            ["resolve", "quota", "draft", "upload", "schedule"],
             [call[0] for call in client.calls]
         )
         settings = client.calls[2][4]
