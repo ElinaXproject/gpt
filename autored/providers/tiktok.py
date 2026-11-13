@@ -171,7 +171,7 @@ class TikTokDirectPublisher:
             raise TikTokError("invalid_duration")
         if not hasattr(scheduled_at, "tzinfo") or scheduled_at.tzinfo is None:
             raise TikTokError("scheduled_time_must_be_timezone_aware")
-        if scheduled_at.timestamp() > __import__("time").time():
+        if scheduled_at.timestamp() > time.time():
             raise TikTokError("publication_not_due")
         if music_embedded is not True or not isinstance(music_license_reference, str) or not music_license_reference.strip():
             raise TikTokError("licensed_embedded_music_required")
