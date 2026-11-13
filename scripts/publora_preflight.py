@@ -45,6 +45,24 @@ def run_preflight(client: Any, d1_client: Any | None = None) -> dict[str, Any]:
                 "reason": exc.code,
             })
     ready = sum(1 for item in results if item["status"] == "ready")
+    account_result = {"status": "not_checked"}
+    try:
+        context = client.account_context()
+        allowed = context.get("allowedPlatforms")
+        expected_platforms = {"tiktok", "youtube"}
+        unsupported = sorted(expected_platforms - set(allowed or [])) if isinstance(allowed, list) else []
+        features = context.get("features", {})
+        account_result = {
+            "status": "ready" if not unsupported and features.get("publishing") is True and features.get("apiAccess") is True else "blocked",
+            "plan": context.get("plan", {}).get("name"),
+            "monthly_posts_remaining": context.get("quotas", {}).get("monthlyPosts", {}).get("remaining"),
+            "scheduled_slots_remaining": context.get("quotas", {}).get("scheduledPosts", {}).get("remaining"),
+            "connections_remaining": context.get("quotas", {}).get("connections", {}).get("remaining"),
+            "max_scheduled_date": context.get("quotas", {}).get("scheduleHorizon", {}).get("maxScheduledDate"),
+            "unsupported_platforms": unsupported,
+        }
+    except PubloraError as exc:
+        account_result = {"status": "blocked", "reason": exc.code}
     d1_result = {"status": "not_checked"}
     if d1_client is not None:
         try:
@@ -60,9 +78,10 @@ def run_preflight(client: Any, d1_client: Any | None = None) -> dict[str, Any]:
             }
         except D1Error as exc:
             d1_result = {"status": "blocked", "reason": exc.code}
-    all_ready = ready == len(PROFILES) and d1_result["status"] == "ready"
+    all_ready = ready == len(PROFILES) and account_result["status"] == "ready" and d1_result["status"] == "ready"
     return {
         "status": "ready" if all_ready else "incomplete",
+        "publora_account": account_result,
         "ready_profiles": ready,
         "total_profiles": len(PROFILES),
         "d1_database": d1_result,
