@@ -17,6 +17,7 @@ class FakeClient:
         self.calls = []
         self.schedule_error = schedule_error
         self.post_status = post_status
+        self.scheduled_time = None
 
     def resolve_connection(self, platform, handle):
         self.calls.append(("resolve", platform, handle))
@@ -36,13 +37,14 @@ class FakeClient:
 
     def schedule_draft(self, post_group_id, scheduled_time, *, idempotency_key):
         self.calls.append(("schedule", post_group_id, scheduled_time, idempotency_key))
+        self.scheduled_time = scheduled_time
         if self.schedule_error:
             raise self.schedule_error
         return {"status": "scheduled"}
 
     def get_post(self, post_group_id):
         self.calls.append(("get", post_group_id))
-        return {"postGroup": {"status": self.post_status}}
+        return {"postGroup": {"status": self.post_status, "scheduledTime": self.scheduled_time.isoformat() if self.scheduled_time else None}}
 
 
 
@@ -154,6 +156,17 @@ class PubloraPipelineTests(unittest.TestCase):
         result = process_manifest(client, self.base)
         self.assertEqual("scheduled", result["status"])
         self.assertEqual("get", client.calls[-1][0])
+
+
+    def test_unknown_schedule_with_wrong_time_requires_manual_reconciliation(self):
+        client = FakeClient(schedule_error=PubloraError("network_outcome_unknown"), post_status="scheduled")
+        client.scheduled_time = datetime.now(timezone.utc) + timedelta(days=2)
+        original_get_post = client.get_post
+        def wrong_time(_post_group_id):
+            return {"postGroup": {"status": "scheduled", "scheduledTime": "2026-11-20T12:00:00Z"}}
+        client.get_post = wrong_time
+        with self.assertRaisesRegex(PubloraError, "schedule_outcome_unknown_requires_reconciliation"):
+            process_manifest(client, self.base)
 
     def test_unknown_schedule_outcome_is_not_blindly_retried(self):
         client = FakeClient(schedule_error=PubloraError("network_outcome_unknown"), post_status="draft")
