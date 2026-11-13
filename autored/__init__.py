@@ -1,0 +1,1 @@
+"""AUTORED IDEA core package."""
