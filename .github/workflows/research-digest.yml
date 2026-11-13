@@ -19,14 +19,28 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - name: Build research digest
+      - name: Fetch daily ideas and build research digest
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
+          mkdir -p artifacts
           if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
-            python scripts/research_digest.py --require-local-hour 9 --output artifacts/research-digest.json
+            local_hour="$(TZ=Europe/Warsaw date +%H)"
+            if [ "$local_hour" != "09" ]; then
+              echo "Outside 09:00 Europe/Warsaw research window; skipping duplicate UTC Cron."
+              printf '{"status":"skipped","reason":"outside_local_schedule","local_hour":"%s"}\\n' "$local_hour" > artifacts/research-digest.json
+              exit 0
+            fi
+            local_date="$(TZ=Europe/Warsaw date +%F)"
+            curl --fail --silent --show-error "https://autored-idea-api.frozone-social.workers.dev/ideas?date=$local_date" -o artifacts/daily-ideas.json
+            python scripts/research_digest.py --ideas artifacts/daily-ideas.json --output artifacts/research-digest.json
           else
-            python scripts/research_digest.py --output artifacts/research-digest.json
+            local_date="$(TZ=Europe/Warsaw date +%F)"
+            if curl --fail --silent --show-error "https://autored-idea-api.frozone-social.workers.dev/ideas?date=$local_date" -o artifacts/daily-ideas.json; then
+              python scripts/research_digest.py --ideas artifacts/daily-ideas.json --output artifacts/research-digest.json
+            else
+              python scripts/research_digest.py --output artifacts/research-digest.json
+            fi
           fi
       - name: Upload research report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
