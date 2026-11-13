@@ -1,6 +1,7 @@
 """Media integrity checks before social-platform upload."""
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -11,6 +12,19 @@ class MediaValidationError(RuntimeError):
     def __init__(self, code: str):
         self.code = code
         super().__init__("media_" + code)
+
+
+def sha256_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
+    if chunk_size < 1:
+        raise ValueError("chunk_size_must_be_positive")
+    digest = hashlib.sha256()
+    with path.open("rb") as media:
+        while True:
+            chunk = media.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def probe_media(path: Path, runner: Callable[..., Any] = subprocess.run) -> dict[str, Any]:
