@@ -79,6 +79,48 @@ class PubloraClient:
             raise PubloraError(str(result.get("code") or "provider_rejected"), status)
         return result
 
+    def account_context(self, scheduled_time: datetime | None = None) -> dict[str, Any]:
+        path = "/account-context"
+        if scheduled_time is not None:
+            if scheduled_time.tzinfo is None:
+                raise PubloraError("schedule_must_be_timezone_aware")
+            query = urllib.parse.urlencode({
+                "scheduledTime": scheduled_time.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            })
+            path += "?" + query
+        result = self._request("GET", path)
+        context = result.get("context")
+        if not isinstance(context, dict):
+            raise PubloraError("invalid_account_context")
+        return context
+
+    def check_schedule_quota(self, platform: str, scheduled_time: datetime) -> dict[str, Any]:
+        context = self.account_context(scheduled_time)
+        if context.get("features", {}).get("publishing") is not True:
+            raise PubloraError("publishing_feature_unavailable")
+        if context.get("features", {}).get("apiAccess") is not True:
+            raise PubloraError("api_access_unavailable")
+        allowed = context.get("allowedPlatforms")
+        if isinstance(allowed, list) and platform not in allowed:
+            raise PubloraError("platform_not_available_on_plan")
+        quotas = context.get("quotas", {})
+        monthly = quotas.get("monthlyPosts", {})
+        scheduled = quotas.get("scheduledPosts", {})
+        if monthly.get("remaining") is not None and monthly.get("remaining") < 1:
+            raise PubloraError("monthly_post_quota_exhausted")
+        if scheduled.get("remaining") is not None and scheduled.get("remaining") < 1:
+            raise PubloraError("scheduled_queue_full")
+        horizon = quotas.get("scheduleHorizon", {})
+        max_date = horizon.get("maxScheduledDate")
+        if max_date:
+            try:
+                max_dt = datetime.fromisoformat(max_date.replace("Z", "+00:00"))
+            except (TypeError, ValueError):
+                raise PubloraError("invalid_schedule_horizon_response") from None
+            if scheduled_time.astimezone(timezone.utc) > max_dt.astimezone(timezone.utc):
+                raise PubloraError("schedule_exceeds_provider_horizon")
+        return context
+
     def list_connections(self) -> list[dict[str, Any]]:
         result = self._request("GET", "/platform-connections")
         connections = result.get("connections")
