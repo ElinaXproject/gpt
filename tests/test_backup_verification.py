@@ -1,12 +1,15 @@
+import hashlib
+import json
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from verify_d1_backup import verify_sql_dump
+from verify_d1_backup import decrypt_and_verify, verify_sql_dump
 
 
 class BackupVerificationTests(unittest.TestCase):
@@ -36,6 +39,24 @@ class BackupVerificationTests(unittest.TestCase):
     def test_missing_required_table_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "missing_expected_tables"):
             verify_sql_dump(self.write_sql("CREATE TABLE profiles (id TEXT PRIMARY KEY);"))
+
+    def test_encrypted_archive_hash_is_checked_before_decryption(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = root / "backup.sql.age"
+            identity = root / "identity.txt"
+            manifest = root / "manifest.json"
+            archive.write_bytes(b"tampered-ciphertext")
+            identity.write_text("not-used", encoding="utf-8")
+            manifest.write_text(json.dumps({
+                "plaintext_sha256": "0" * 64,
+                "encrypted_sha256": "1" * 64,
+                "database": "autored_idea_db"
+            }), encoding="utf-8")
+            with patch("verify_d1_backup.subprocess.run") as decrypt:
+                with self.assertRaisesRegex(ValueError, "backup_encrypted_sha256_mismatch"):
+                    decrypt_and_verify(archive, identity, manifest)
+                decrypt.assert_not_called()
 
     def test_empty_dump_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "empty_sql_dump"):
