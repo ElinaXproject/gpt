@@ -254,9 +254,22 @@ class D1Client:
     def mark_job_failed(self, job_id: str, error_code: str, blocked: bool = False) -> None:
         status = "blocked" if blocked else "failed"
         safe_code = str(error_code)[:120]
-        self.query(
+        rows = self.query(
+            "SELECT content_id FROM publication_jobs WHERE id=?",
+            [job_id],
+        ).get("results", [])
+        if len(rows) != 1:
+            raise D1Error("job_not_found")
+        result = self.query(
             "UPDATE publication_jobs SET status=?, last_error_code=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             [status, safe_code, job_id],
+        )
+        if (result.get("meta") or {}).get("changes", 0) != 1:
+            raise D1Error("job_failure_transition_rejected")
+        self.query(
+            "UPDATE content_items SET status=?, updated_at=CURRENT_TIMESTAMP "
+            "WHERE id=? AND status IN ('idea','draft','ready','scheduled')",
+            [status, rows[0]["content_id"]],
         )
 
     def get_due_jobs(self, now_utc: str, limit: int = 20) -> list[dict[str, Any]]:
