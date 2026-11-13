@@ -19,6 +19,7 @@ EXPECTED_TABLES = {
     "quota_ledger",
     "daily_runs",
     "events",
+    "provider_tokens",
 }
 
 
