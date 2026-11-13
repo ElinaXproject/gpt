@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:34 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:36 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -15,14 +15,14 @@
 | Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, backupu, retencji, RPO/RTO i napraw |
 | Plan testów | DONE (projekt) | macierz T01–T22 plus kontrole wdrożenia |
 | Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry |
-| CI GitHub | VERIFIED | workflow #116: sukces; workflow #117/#118: testy core, składnia Workera, testy harmonogramu i health pre-deploy PASS |
+| CI GitHub | VERIFIED | workflow #116–#125: regresja, testy core, składnia Workera, harmonogram, health wdrożonego Workera oraz testy RSS PASS |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
 | Cloudflare Worker | DEPLOYED / HEALTH CHECK PENDING | poprawka atomowego claimu Cron wdrożona jako wersja `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; AI/D1 i Cron potwierdzone odczytem API; health po wdrożeniu oczekuje na CI |
 | Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
 | Workers AI | PARTIAL | prosty JSON i FLUX image smoke test przeszły; pełny batch 3 profili oraz integracja assetów niezweryfikowane |
 | Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
 | Zapis pomysłów w D1 | NOT RUN | tabela jest gotowa, brak jeszcze rekordów z Cron |
-| Research i weryfikacja źródeł | NOT RUN | osobny moduł do zbudowania |
+| Research i weryfikacja źródeł | PARTIAL | smoke test RSS 9/9 PASS; pełny pipeline research/fact-check jeszcze do zbudowania |
 | Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
 | Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; brak adaptera w Workerze |
@@ -56,7 +56,8 @@
 - CI potwierdziło testy regresyjne, składnię modułu Workera, testy harmonogramu i health przed ostatnim wdrożeniem.
 - Dodano atomowy claim dziennego uruchomienia Cron oraz odzyskiwanie wygasłej blokady po awarii; nowe testy aktywnej i przeterminowanej blokady przeszły w GitHub Actions #117/#118.
 - Wdrożono tę poprawkę do Cloudflare jako wersję `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; zachowano istniejące bindingi D1/AI i harmonogram Cron.
-- Odczyt Cloudflare API potwierdził wersję, bindingi i harmonogram po wdrożeniu; zewnętrzny health check po wdrożeniu jest jeszcze do potwierdzenia.
+- Odczyt Cloudflare API potwierdził wersję, bindingi i harmonogram po wdrożeniu; GitHub Actions #125 potwierdził HTTP health 200 po wdrożeniu.
+- Smoke test RSS potwierdził 9/9 feedów; poprawiono walidację hostów i osobną allowlistę endpointów RSS.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
 
