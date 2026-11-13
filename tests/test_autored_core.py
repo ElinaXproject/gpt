@@ -53,6 +53,7 @@ class AutoRedCoreTests(unittest.TestCase):
             source_urls=("https://example.org/source-a", "https://example.net/source-b"),
             source_published_at=(now, now),
             fact_check_passed=True,
+            fact_check_reference="fc-verified-001",
         )
         self.assertEqual([], package.validate())
 
