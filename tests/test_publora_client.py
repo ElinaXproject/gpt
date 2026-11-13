@@ -168,6 +168,68 @@ class PubloraClientTests(unittest.TestCase):
         with self.assertRaisesRegex(PubloraError, "schedule_exceeds_provider_horizon"):
             client.check_schedule_quota("tiktok", datetime(2026, 11, 16, 12, tzinfo=timezone.utc))
 
+
+    def test_upload_media_finalizes_and_verifies_ready_attachment(self):
+        import tempfile
+        from pathlib import Path
+        responses = [
+            {"success": True, "uploadUrl": "https://s3.example.com/upload", "mediaId": "media-1", "fileUrl": "https://media.publora.com/video.mp4"},
+            {},
+            {"success": True, "mediaFile": {"mediaId": "media-1", "status": "ready"}},
+            {"success": True, "postGroup": {"media": [{"mediaId": "media-1", "status": "ready"}]}},
+        ]
+        captured = []
+        def opener(request, timeout=30):
+            captured.append(request)
+            return FakeResponse(responses.pop(0))
+        client = PubloraClient(api_key="test-key", opener=opener)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "clip.mp4"
+            media.write_bytes(b"video-bytes")
+            result = client.upload_media("group-1", media)
+        self.assertEqual("ready", result["status"])
+        upload_body = json.loads(captured[0].data.decode("utf-8"))
+        self.assertEqual("video", upload_body["type"])
+        self.assertEqual("PUT", captured[1].get_method())
+        self.assertIn("/complete-media/media-1", captured[2].full_url)
+        self.assertIn("/get-post/group-1", captured[3].full_url)
+
+    def test_complete_media_retries_same_media_after_validation_pending(self):
+        import publora_client
+        responses = [
+            {"success": False, "code": "MEDIA_VALIDATION_PENDING"},
+            {"success": True, "mediaFile": {"mediaId": "media-1", "status": "ready"}},
+        ]
+        captured = []
+        def opener(request, timeout=30):
+            captured.append(request)
+            return FakeResponse(responses.pop(0))
+        client = PubloraClient(api_key="test-key", opener=opener)
+        with unittest.mock.patch.object(publora_client.time, "sleep") as sleep:
+            result = client.complete_media("media-1")
+        self.assertEqual("ready", result["status"])
+        self.assertEqual(2, len(captured))
+        self.assertTrue(all("/complete-media/media-1" in req.full_url for req in captured))
+        sleep.assert_called_once()
+
+    def test_upload_media_blocks_when_provider_does_not_mark_file_ready(self):
+        import tempfile
+        from pathlib import Path
+        responses = [
+            {"success": True, "uploadUrl": "https://s3.example.com/upload", "mediaId": "media-1"},
+            {},
+            {"success": True, "mediaFile": {"mediaId": "media-1", "status": "ready"}},
+            {"success": True, "postGroup": {"media": [{"mediaId": "media-1", "status": "uploading"}]}},
+        ]
+        def opener(request, timeout=30):
+            return FakeResponse(responses.pop(0))
+        client = PubloraClient(api_key="test-key", opener=opener)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "clip.mp4"
+            media.write_bytes(b"video-bytes")
+            with self.assertRaisesRegex(PubloraError, "uploaded_media_not_ready"):
+                client.upload_media("group-1", media)
+
     def test_missing_api_key_is_rejected(self):
         with self.assertRaisesRegex(PubloraError, "missing_api_key"):
             PubloraClient(api_key="", opener=lambda *_args, **_kwargs: None)
