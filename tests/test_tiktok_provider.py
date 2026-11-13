@@ -81,7 +81,7 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         responses = [
             FakeResponse({"access_token": "access", "refresh_token": "refresh-2"}),
             FakeResponse(self.creator_info()),
-            FakeResponse({"data": {"publish_id": "publish-1", "upload_url": "https://upload.tiktok.test/session/1"}}),
+            FakeResponse({"data": {"publish_id": "publish-1", "upload_url": "https://open-upload.tiktokapis.com/video/?session=1"}}),
             FakeResponse({}, status=201),
             FakeResponse({"data": {"status": "PUBLISH_COMPLETE"}}),
         ]
@@ -103,6 +103,24 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         upload_headers = {name.lower(): value for name, value in captured[3].header_items()}
         self.assertEqual("bytes 0-10/11", upload_headers["content-range"])
 
+    def test_untrusted_upload_host_is_rejected(self):
+        responses = [
+            FakeResponse({"access_token": "access"}),
+            FakeResponse(self.creator_info()),
+            FakeResponse({"data": {"publish_id": "publish-bad", "upload_url": "https://attacker.example/upload"}}),
+        ]
+        publisher, captured = self.publisher(responses, audited=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            media = Path(tmp) / "clip.mp4"
+            media.write_bytes(b"video-bytes")
+            with self.assertRaisesRegex(TikTokError, "unsafe_upload_url"):
+                publisher.publish_video(
+                    media_path=media, title="Test", privacy_level="PUBLIC_TO_EVERYONE", duration_seconds=20,
+                    scheduled_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    music_embedded=True, music_license_reference="original-track-license-001"
+                )
+        self.assertEqual(3, len(captured))
+
     def test_creator_account_mismatch_blocks_before_video_init(self):
         responses = [
             FakeResponse({"access_token": "access"}),
@@ -123,7 +141,7 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         responses = [
             FakeResponse({"access_token": "access"}),
             FakeResponse(self.creator_info()),
-            FakeResponse({"data": {"publish_id": "publish-2", "upload_url": "https://upload.tiktok.test/session/2"}}),
+            FakeResponse({"data": {"publish_id": "publish-2", "upload_url": "https://open-upload.tiktokapis.com/video/?session=2"}}),
             FakeResponse({}, status=201),
             FakeResponse({"data": {"status": "PUBLISH_COMPLETE"}}),
         ]
@@ -171,7 +189,7 @@ class TikTokDirectPublisherTests(unittest.TestCase):
         responses = [
             FakeResponse({"access_token": "access"}),
             FakeResponse(self.creator_info()),
-            FakeResponse({"data": {"publish_id": "publish-3", "upload_url": "https://upload.tiktok.test/session/3"}}),
+            FakeResponse({"data": {"publish_id": "publish-3", "upload_url": "https://open-upload.tiktokapis.com/video/?session=3"}}),
             FakeResponse({}, status=201),
             FakeResponse({"data": {"status": "PROCESSING_UPLOAD"}}),
             FakeResponse({"data": {"status": "PROCESSING_DOWNLOAD"}}),
