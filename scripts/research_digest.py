@@ -193,14 +193,16 @@ def build_digest(ideas: list[dict], feeds: list[dict] | None = None, now: dateti
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ideas", type=Path, required=True, help="JSON object with an items array")
+    parser.add_argument("--ideas", type=Path, help="Optional JSON object with an items array")
+    parser.add_argument("--queries", type=Path, default=ROOT / "config/research_queries.json")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
-        payload = json.loads(args.ideas.read_text(encoding="utf-8"))
+        source_path = args.ideas or args.queries
+        payload = json.loads(source_path.read_text(encoding="utf-8"))
         ideas = payload.get("items", [])
         if not isinstance(ideas, list) or not ideas:
-            raise ValueError("ideas_items_required")
+            raise ValueError("research_queries_items_required")
         result = build_digest(ideas)
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(json.dumps({"status": "blocked", "error": str(exc)[:120]}, ensure_ascii=False))
