@@ -58,7 +58,7 @@ class WorkbenchRepositoryTests(unittest.TestCase):
     def test_autored_test_matrix_has_22_cases(self):
         content = self.read("docs/AUTORED_IDEA_TEST_PLAN_PL.md")
         case_ids = set(re.findall(r"^\|\s*(T\d{2})\s*\|", content, re.MULTILINE))
-        self.assertEqual({f"T{i:02d}" for i in range(1, 23)}, case_ids)
+        self.assertEqual({f"T{i:02d}" for i in range(1, 24)}, case_ids)
         self.assertIn("NOT RUN", content)
 
     def test_autored_security_plan_includes_backup_and_restore(self):
