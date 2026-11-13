@@ -41,6 +41,7 @@ Nie wykonywać realnej publikacji publicznej w testach. Używać mocków, prywat
 | T20 | DR | odtworzenie do staging | spójność rekordów i hashy | NOT RUN |
 | T21 | Sekrety | token w logu/artefakcie | test bezpieczeństwa fail | NOT RUN |
 | T22 | Scheduler | awaria workera podczas renderu | wznowienie bez duplikatu | NOT RUN |
+| T23 | Safety | treść nie przechodzi kontroli bezpieczeństwa | publikacja zablokowana | NOT RUN |
 
 ## 3. Kryteria jakości treści
 
