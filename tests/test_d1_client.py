@@ -282,7 +282,8 @@ class D1ClientTests(unittest.TestCase):
             client.reserve_job(
                 content_id="content-1", profile_id="tiktok_pieknemedia",
                 scheduled_at="2026-11-14T12:00:00+00:00",
-                idempotency_key="native-key", provider="tiktok_direct"
+                idempotency_key="native-key", provider="tiktok_direct",
+                media_artifact_id="12345"
             )
         self.assertEqual(1, len(requests))
 
@@ -326,7 +327,7 @@ class D1ClientTests(unittest.TestCase):
             content_id="content-1", profile_id="youtube_memoryagent",
             scheduled_at="2026-11-14T12:00:00+00:00",
             idempotency_key="youtube-key", provider="youtube_direct",
-            media_artifact_id="artifact-123"
+            media_artifact_id="12345"
         )
         self.assertEqual("youtube_direct", result["provider"])
         client.mark_job_publishing("job-youtube")
