@@ -196,6 +196,7 @@ class D1ClientTests(unittest.TestCase):
         client, requests = self.client([
             self.response([{"profile_id":"tiktok_pieknemedia","status":"draft"}], 0),
             self.response([], 1),
+            self.response([], 1),
         ])
         status, reference = client.record_safety_review(
             "content-1", "tiktok_pieknemedia", "editor:verified-review",
@@ -206,13 +207,15 @@ class D1ClientTests(unittest.TestCase):
         )
         self.assertEqual("passed", status)
         self.assertTrue(reference.startswith("sr_"))
-        self.assertEqual(2, len(requests))
+        self.assertEqual(3, len(requests))
         update = json.loads(requests[1].data.decode("utf-8"))
         self.assertIn("safety_review_report_json", update["sql"])
+        self.assertIn("human_safety_review", json.loads(requests[2].data.decode("utf-8"))["sql"])
 
     def test_failed_safety_check_is_persisted_as_blocked(self):
         client, requests = self.client([
             self.response([{"profile_id":"tiktok_pieknemedia","status":"draft"}], 0),
+            self.response([], 1),
             self.response([], 1),
         ])
         status, _reference = client.record_safety_review(
@@ -222,7 +225,7 @@ class D1ClientTests(unittest.TestCase):
              "ai_disclosure": True, "music_license": True}
         )
         self.assertEqual("blocked", status)
-        self.assertEqual(2, len(requests))
+        self.assertEqual(3, len(requests))
         update = json.loads(requests[1].data.decode("utf-8"))
         self.assertEqual("blocked", update["params"][0])
 
@@ -239,12 +242,14 @@ class D1ClientTests(unittest.TestCase):
         client, requests = self.client([
             self.response([{"profile_id":"youtube_memoryagent","status":"draft"}], 0),
             self.response([], 1),
+            self.response([], 1),
         ])
         reference = client.record_fact_check_report("content-1", "youtube_memoryagent", report)
         self.assertEqual(report.reference(), reference)
-        self.assertEqual(2, len(requests))
+        self.assertEqual(3, len(requests))
         update = json.loads(requests[1].data.decode("utf-8"))
         self.assertIn("fact_check_report_json", update["sql"])
+        self.assertIn("human_fact_check", json.loads(requests[2].data.decode("utf-8"))["sql"])
         self.assertEqual(1, update["params"][0] == reference)
 
     def test_native_youtube_rejects_fact_check_reference_without_matching_report(self):
