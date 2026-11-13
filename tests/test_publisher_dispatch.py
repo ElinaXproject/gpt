@@ -116,14 +116,17 @@ class PublisherDispatchTests(unittest.TestCase):
             "ai_generated": True, "media_sha256": "0" * 64, "media_bytes": 5, "media_mime": "video/mp4"
         }
         called=[]
+        def runner(manifest_path, media_path):
+            called.append(json.loads(manifest_path.read_text(encoding="utf-8"))["media_artifact_id"])
+            return {"status":"published"}
         result = run_dispatch(
             d1=d1, now_utc="2026-11-14T12:00:00Z",
             env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             downloader=self.artifact(manifest),
-            tiktok_runner=lambda manifest_path, media_path: called.append((manifest_path, media_path)) or {"status":"published"}
+            tiktok_runner=runner
         )
         self.assertEqual(1, result["processed"])
-        self.assertEqual(1, len(called))
+        self.assertEqual(["12345"], called)
         self.assertEqual([], d1.failed)
 
     def test_pending_tiktok_job_is_reconciled_as_published(self):
