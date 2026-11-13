@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS content_items (
   media_bytes INTEGER NOT NULL DEFAULT 0,
   media_sha256 TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT 'idea' CHECK (status IN ('idea','draft','ready','blocked','scheduled','published','failed')),
-  daily_run_date TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  daily_run_date TEXT
 );
 
 CREATE TABLE IF NOT EXISTS publication_jobs (
