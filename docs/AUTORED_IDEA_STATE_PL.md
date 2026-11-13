@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:36 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:38 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -14,7 +14,7 @@
 | Plan etapów | DONE | roadmapa etapów 0–12 |
 | Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, backupu, retencji, RPO/RTO i napraw |
 | Plan testów | DONE (projekt) | macierz T01–T22 plus kontrole wdrożenia |
-| Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry |
+| Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry; testy Publora w CI #131 |
 | CI GitHub | VERIFIED | workflow #116–#125: regresja, testy core, składnia Workera, harmonogram, health wdrożonego Workera oraz testy RSS PASS |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
 | Cloudflare Worker | DEPLOYED / HEALTH CHECK PENDING | poprawka atomowego claimu Cron wdrożona jako wersja `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; AI/D1 i Cron potwierdzone odczytem API; health po wdrożeniu oczekuje na CI |
@@ -25,9 +25,9 @@
 | Research i weryfikacja źródeł | PARTIAL | smoke test RSS 9/9 PASS; pełny pipeline research/fact-check jeszcze do zbudowania |
 | Kalendarz i strategie profili | PARTIAL | profile zarejestrowane; dedykowane kalendarze i reguły nieukończone |
 | Renderowanie mediów | PARTIAL | Piper + FFmpeg renderują 1080×1920 H.264/AAC 48 kHz stereo; polskie znaki poprawione przez Pillow; test trzech nowych teł w toku |
-| TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; brak adaptera w Workerze |
-| TikTok @ocenionona6 | PARTIAL | Metricool brand RED ABSURD IDEA połączony; brak adaptera w Workerze |
-| YouTube @MemoryAgent-r3c | BLOCKED | Metricool ma channel ID, ale zgodność z handle wymaga potwierdzenia; brak adaptera/OAuth |
+| TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; bezpieczny klient API i testy gotowe; brak klucza API w środowisku wykonawczym |
+| TikTok @ocenionona6 | BLOCKED | Metricool połączony; brak potwierdzonego limitu planu i brak backendowego tokenu/adaptera; brak połączenia w Publora |
+| YouTube @MemoryAgent-r3c | BLOCKED | Metricool ID nie zgadza się z ID vidIQ; brak poprawnego połączenia i backendowego tokenu/adaptera |
 | Publikacja E2E | NOT RUN | żadna publikacja nie została wykonana |
 | Backup / restore | BLOCKED | plan istnieje, brak odseparowanego magazynu i testu odtworzenia |
 
@@ -58,6 +58,7 @@
 - Wdrożono tę poprawkę do Cloudflare jako wersję `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; zachowano istniejące bindingi D1/AI i harmonogram Cron.
 - Odczyt Cloudflare API potwierdził wersję, bindingi i harmonogram po wdrożeniu; GitHub Actions #125 potwierdził HTTP health 200 po wdrożeniu.
 - Smoke test RSS potwierdził 9/9 feedów; poprawiono walidację hostów i osobną allowlistę endpointów RSS.
+- Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni i idempotency key. CI #131: PASS. Nie wykonano żadnej publikacji.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
 
@@ -67,8 +68,8 @@
 - Metricool: limity planu nie zostały potwierdzone; nie zakładać wartości.
 - Worker nie ma poświadczeń providerów; połączenia w ChatGPT nie są automatycznie dostępne w Cloudflare.
 
-1. Brak adapterów publikacji dla Publora, Metricool, TikTok i YouTube.
-2. Brak poświadczeń platform publikacyjnych w Workerze.
+1. Klient Publora dla szkiców/uploadu/planowania istnieje, ale wymaga klucza API w sekrecie; adaptery Metricool i pełne połączenie produkcyjne nadal niegotowe.
+2. Brak backendowych poświadczeń Publora/Metricool w bezpiecznych sekretach; połączenia ChatGPT nie są dostępne bezpośrednio dla Workera/GitHub Actions.
 3. vidIQ potwierdził kanał `Memory Agent`, handle `@memoryagent-r3c`, ID `UCOE1EX9WZGDesaJNYIEhj7g`; Metricool wskazuje inne ID `UCRmmEQysOmUbs8mpZEOgtLw`, więc mapowanie YouTube jest BLOCKED i publikacja przez Metricool zabroniona do czasu naprawy.
 4. Brak renderera i testów FFmpeg.
 5. Brak potwierdzonego darmowego sposobu generowania obrazów/wideo w wymaganej skali.
