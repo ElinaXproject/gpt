@@ -38,6 +38,54 @@ class AutoRedCoreTests(unittest.TestCase):
             {profile.handle for profile in PROFILES.values()},
         )
 
+
+    def test_youtube_research_requires_two_sources_and_fact_check(self):
+        package = self.package(profile="youtube_memoryagent")
+        errors = package.validate()
+        self.assertIn("insufficient_verified_sources", errors)
+        self.assertIn("fact_check_not_passed", errors)
+        self.assertIn("source_dates_mismatch", errors)
+
+    def test_youtube_accepts_two_fresh_verified_sources(self):
+        now = datetime.now(timezone.utc).isoformat()
+        package = self.package(
+            profile="youtube_memoryagent",
+            source_urls=("https://example.org/source-a", "https://example.net/source-b"),
+            source_published_at=(now, now),
+            fact_check_passed=True,
+        )
+        self.assertEqual([], package.validate())
+
+    def test_research_source_older_than_72_hours_is_blocked(self):
+        old = (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()
+        package = self.package(
+            profile="youtube_memoryagent",
+            source_urls=("https://example.org/source-a", "https://example.net/source-b"),
+            source_published_at=(old, old),
+            fact_check_passed=True,
+        )
+        self.assertIn("source_outside_72h_window", package.validate())
+
+    def test_research_source_url_requires_https(self):
+        now = datetime.now(timezone.utc).isoformat()
+        package = self.package(
+            profile="youtube_memoryagent",
+            source_urls=("http://example.org/source-a", "https://example.net/source-b"),
+            source_published_at=(now, now),
+            fact_check_passed=True,
+        )
+        self.assertIn("invalid_source_url", package.validate())
+
+    def test_education_profile_requires_fact_check(self):
+        now = datetime.now(timezone.utc).isoformat()
+        package = self.package(
+            profile="tiktok_ocenionona6",
+            source_urls=("https://example.org/source-a",),
+            source_published_at=(now,),
+            fact_check_passed=False,
+        )
+        self.assertIn("fact_check_not_passed", package.validate())
+
     def test_valid_package_passes(self):
         self.assertEqual([], self.package().validate())
 
