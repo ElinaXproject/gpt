@@ -10,6 +10,7 @@ binding = "AI"
 binding = "DB"
 database_name = "autored_idea_db"
 database_id = "5162eab4-2364-4481-95c1-50fdc3070d3e"
+migrations_dir = "cloudflare/migrations"
 
 [triggers]
 crons = ["0 7,8 * * *"]
