@@ -81,6 +81,7 @@ Workflow `.github/workflows/d1-backup.yml`:
 - szyfruje SQL przez age przed wysłaniem artefaktu;
 - tworzy manifest SHA-256 dla pliku jawnego i zaszyfrowanego;
 - przechowuje zaszyfrowany artefakt do 90 dni;
+- narzędzie `scripts/verify_d1_backup.py` odszyfrowuje lokalnie, porównuje SHA-256, wykonuje SQLite `PRAGMA integrity_check` i sprawdza obecność 6 tabel; testy offline PASS.
 - przy braku sekretów pomija harmonogram z ostrzeżeniem; ręczne uruchomienie zgłasza brak konfiguracji.
 
 Wymagane ręczne ustawienia właściciela:
