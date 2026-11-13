@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:31 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:34 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -15,9 +15,9 @@
 | Bezpieczeństwo i DR | DONE (projekt) | plan zabezpieczeń, backupu, retencji, RPO/RTO i napraw |
 | Plan testów | DONE (projekt) | macierz T01–T22 plus kontrole wdrożenia |
 | Core Python | VERIFIED | profile, walidacja pakietu, idempotencja, maszyna stanów, limity i retry |
-| CI GitHub | BLOCKED → FIX COMMITTED / RUN QUEUED | wykryto stary expected handle w teście core; poprawka commit `88f05cea4cec0932f54f9fa6941652d613a782fc`; workflow #115 oczekuje na runner |
+| CI GitHub | VERIFIED | workflow #116: sukces; workflow #117/#118: testy core, składnia Workera, testy harmonogramu i health pre-deploy PASS |
 | Cloudflare D1 | VERIFIED | baza EU/EEUR, tabele, indeksy i 3 profile sprawdzone zapytaniami SQL |
-| Cloudflare Worker | VERIFIED | `autored-idea-api`, aktywna wersja 100% ruchu, binding AI i D1; health HTTP potwierdzony w CI |
+| Cloudflare Worker | DEPLOYED / HEALTH CHECK PENDING | poprawka atomowego claimu Cron wdrożona jako wersja `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; AI/D1 i Cron potwierdzone odczytem API; health po wdrożeniu oczekuje na CI |
 | Cron | CONFIGURED | dwa wywołania UTC z kontrolą 09:00 Europe/Warsaw i DST |
 | Workers AI | PARTIAL | prosty JSON i FLUX image smoke test przeszły; pełny batch 3 profili oraz integracja assetów niezweryfikowane |
 | Pierwszy przebieg Cron | NOT RUN | oczekuje na następne lokalne 09:00 |
@@ -53,7 +53,10 @@
 - Utworzono D1, tabele, indeksy i mapowanie trzech profili.
 - Włączono Worker, D1 i AI binding; ustawiono Cron.
 - Dodano migrację D1 do repozytorium.
-- CI potwierdziło wcześniej testy oraz składnię modułu Workera.
+- CI potwierdziło testy regresyjne, składnię modułu Workera, testy harmonogramu i health przed ostatnim wdrożeniem.
+- Dodano atomowy claim dziennego uruchomienia Cron oraz odzyskiwanie wygasłej blokady po awarii; nowe testy aktywnej i przeterminowanej blokady przeszły w GitHub Actions #117/#118.
+- Wdrożono tę poprawkę do Cloudflare jako wersję `8660ea00-5763-47ce-974b-f54b89f69cfa`, 100% ruchu; zachowano istniejące bindingi D1/AI i harmonogram Cron.
+- Odczyt Cloudflare API potwierdził wersję, bindingi i harmonogram po wdrożeniu; zewnętrzny health check po wdrożeniu jest jeszcze do potwierdzenia.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
 
