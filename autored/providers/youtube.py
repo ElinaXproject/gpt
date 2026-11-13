@@ -31,12 +31,14 @@ class YouTubeUploader:
         client_secret: str | None = None,
         refresh_token: str | None = None,
         expected_channel_id: str = EXPECTED_MEMORY_AGENT_CHANNEL_ID,
+        api_audited: bool | None = None,
         opener=None,
     ):
         self.client_id = client_id or os.environ.get("YOUTUBE_CLIENT_ID", "")
         self.client_secret = client_secret or os.environ.get("YOUTUBE_CLIENT_SECRET", "")
         self.refresh_token = refresh_token or os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
         self.expected_channel_id = expected_channel_id
+        self.api_audited = api_audited if api_audited is not None else os.environ.get("YOUTUBE_API_AUDITED", "").lower() == "true"
         self.opener = opener or urllib.request.urlopen
         if not all((self.client_id, self.client_secret, self.refresh_token)):
             raise YouTubeError("oauth_credentials_missing")
@@ -145,6 +147,8 @@ class YouTubeUploader:
         return scheduled, {"snippet": snippet, "status": status}
 
     def upload_and_schedule(self, metadata: dict[str, Any], media_path: Path) -> dict[str, Any]:
+        if metadata.get("privacy", "public") == "public" and not self.api_audited:
+            raise YouTubeError("youtube_api_audit_required_for_public")
         scheduled, body = self._validate_metadata(metadata, media_path)
         access_token = self.refresh_access_token()
         channel = self.verify_channel(access_token)
@@ -203,10 +207,16 @@ class YouTubeUploader:
         video_id = uploaded.get("id")
         if not isinstance(video_id, str) or not video_id:
             raise YouTubeError("video_id_missing")
+        uploaded_status = uploaded.get("status", {})
+        actual_publish_at = uploaded_status.get("publishAt")
+        expected_publish_at = scheduled.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+        if uploaded_status.get("privacyStatus") != "private" or actual_publish_at != expected_publish_at:
+            raise YouTubeError("uploaded_schedule_requires_reconciliation")
         return {
             "status": "scheduled",
             "video_id": video_id,
             "channel_id": channel["id"],
             "scheduled_time": scheduled.astimezone(timezone.utc).isoformat(),
-            "privacy_status": uploaded.get("status", {}).get("privacyStatus", "private"),
+            "privacy_status": uploaded_status.get("privacyStatus"),
+            "publish_at": actual_publish_at,
         }
