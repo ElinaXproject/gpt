@@ -6,6 +6,8 @@ on:
     paths:
       - "config/research_feeds.json"
       - "scripts/test_rss_feeds.py"
+      - "scripts/research_digest.py"
+      - "config/research_queries.json"
       - ".github/workflows/rss-smoke.yml"
   workflow_dispatch:
 
@@ -25,3 +27,11 @@ jobs:
           python-version: "3.12"
       - name: Verify RSS feeds and source domains
         run: python scripts/test_rss_feeds.py
+      - name: Build source-matched research digest
+        run: python scripts/research_digest.py --output artifacts/research-digest.json
+      - name: Upload research digest artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: autored-research-digest-smoke
+          path: artifacts/research-digest.json
+          retention-days: 3
