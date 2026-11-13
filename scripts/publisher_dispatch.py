@@ -121,6 +121,10 @@ def _dispatch_one(
             if not _manifest_matches(job, manifest):
                 d1.mark_job_failed(job_id, "media_manifest_job_mismatch", blocked=True)
                 return {"job_id": job_id, "status": "blocked", "reason": "media_manifest_job_mismatch"}
+            # The GitHub artifact ID is known only after upload; bind it at dispatch time.
+            raw_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            raw_manifest["media_artifact_id"] = artifact_id
+            manifest_path.write_text(json.dumps(raw_manifest, ensure_ascii=False), encoding="utf-8")
             result = runner(manifest_path, media_path)
             return {"job_id": job_id, "status": "processed", "provider": provider, "result": result}
         except (ArtifactError, ValueError, OSError, D1Error) as exc:
