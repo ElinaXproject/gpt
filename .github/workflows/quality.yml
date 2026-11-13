@@ -28,3 +28,13 @@ jobs:
         run: node --test tests/worker.test.mjs
       - name: Verify deployed Cloudflare Worker health
         run: curl --fail --silent --show-error https://autored-idea-api.frozone-social.workers.dev/health
+
+      - name: Verify deployed read-only ideas endpoint
+        run: |
+          invalid_status="$(curl --silent --show-error -o /tmp/ideas-invalid.json -w "%{http_code}" "https://autored-idea-api.frozone-social.workers.dev/ideas?date=2026-13-40")"
+          test "$invalid_status" = "400"
+          python -c "import json; d=json.load(open('/tmp/ideas-invalid.json')); assert d.get('error') == 'invalid_date'"
+          local_date="$(TZ=Europe/Warsaw date +%F)"
+          ideas_status="$(curl --silent --show-error -o /tmp/ideas-today.json -w "%{http_code}" "https://autored-idea-api.frozone-social.workers.dev/ideas?date=$local_date")"
+          test "$ideas_status" = "200" -o "$ideas_status" = "404"
+          python -c "import json; d=json.load(open('/tmp/ideas-today.json')); assert isinstance(d.get('items'), list)"
