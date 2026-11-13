@@ -1,6 +1,6 @@
 # AUTORED IDEA — stan realizacji
 
-**Aktualizacja:** 2026-11-13 17:49 Europe/Warsaw  
+**Aktualizacja:** 2026-11-13 17:52 Europe/Warsaw  
 **Repozytorium:** https://github.com/ElinaXproject/gpt  
 **Gałąź:** main  
 **Ogólny status:** IN PROGRESS — brak gotowości produkcyjnej
@@ -28,7 +28,7 @@
 | TikTok @pieknemedia | PARTIAL | Publora active, limit 15 postów/mies.; bezpieczny klient API i testy gotowe; brak klucza API w środowisku wykonawczym |
 | TikTok @ocenionona6 | BLOCKED | Metricool połączony; brak potwierdzonego limitu planu i brak backendowego tokenu/adaptera; brak połączenia w Publora |
 | YouTube @MemoryAgent-r3c | BLOCKED | Metricool ID nie zgadza się z ID vidIQ; brak poprawnego połączenia i backendowego tokenu/adaptera |
-| Publikacja E2E | NOT RUN | żadna publikacja nie została wykonana |
+| Publikacja E2E | BLOCKED | klient Publora i pipeline zapisujący job do D1 mają testy CI PASS; brak API secrets i dwóch połączeń kont; żadna publikacja nie została wykonana |
 | Backup / restore | BLOCKED | plan istnieje, brak odseparowanego magazynu i testu odtworzenia |
 
 ## Zasoby wdrożone
@@ -65,6 +65,7 @@
 - R2 pozostaje wyłączony (Cloudflare API wymaga ręcznego włączenia w Dashboard). Przygotowano workflow szyfrowanego backupu D1 do GitHub Artifacts na 90 dni oraz lokalny weryfikator odszyfrowania, SHA-256 i SQLite integrity; wymaga `CLOUDFLARE_API_TOKEN` i `BACKUP_AGE_RECIPIENT`.
 - Dodano codzienny workflow research o 09:15 czasu Europe/Warsaw z obsługą DST i retencją artefaktu 3 dni; workflow YAML został przyjęty przez GitHub Actions, pierwszy harmonogram jeszcze nie wykonał się.
 - Dodano klienta Publora po stronie serwera: dokładne mapowanie uchwytu, kontrola stanu połączenia, tworzenie szkicu, upload mediów, planowanie UTC, limit 7 dni i idempotency key. CI #131: PASS. Nie wykonano żadnej publikacji.
+- Dodano D1 publication job adapter: sprawdza content_id/profile/status, zapisuje idempotentny job `planned`, aktualizuje content item do `scheduled`; pipeline wymaga Cloudflare D1 tokenu, nie publikuje bez rejestracji joba. Testy D1 adaptera i integracji Publora w CI #192/#194: PASS.
 - Audyt rzeczywistego kanału vidIQ potwierdził `Memory Agent` i handle `@memoryagent-r3c` (provider zwraca handle małymi literami; zachowujemy zapis użytkownika `@MemoryAgent-r3c` w dokumentacji projektu).
 - Naprawiono regresyjny test profili: oczekiwany handle YouTube zmieniono z `@MemoryAgent-r3` na `@MemoryAgent-r3c`; commit `88f05cea4cec0932f54f9fa6941652d613a782fc`. Odczyt pliku po zapisie potwierdził zmianę; CI workflow #115 jest QUEUED, więc wynik testu pozostaje niepotwierdzony.
 
@@ -74,7 +75,7 @@
 - Metricool: limity planu nie zostały potwierdzone; nie zakładać wartości.
 - Worker nie ma poświadczeń providerów; połączenia w ChatGPT nie są automatycznie dostępne w Cloudflare.
 
-1. Klient Publora dla szkiców/uploadu/planowania istnieje, ale wymaga klucza API w sekrecie; adaptery Metricool i pełne połączenie produkcyjne nadal niegotowe.
+1. Klient Publora, pipeline szkic→upload→schedule i D1 job persistence mają testy PASS; produkcyjne uruchomienie wymaga PUBLORA_API_KEY i CLOUDFLARE_API_TOKEN w GitHub Secrets.
 2. Brak backendowych poświadczeń Publora/Metricool w bezpiecznych sekretach; połączenia ChatGPT nie są dostępne bezpośrednio dla Workera/GitHub Actions.
 3. vidIQ potwierdził kanał `Memory Agent`, handle `@memoryagent-r3c`, ID `UCOE1EX9WZGDesaJNYIEhj7g`; Metricool wskazuje inne ID `UCRmmEQysOmUbs8mpZEOgtLw`, więc mapowanie YouTube jest BLOCKED i publikacja przez Metricool zabroniona do czasu naprawy.
 4. Brak renderera i testów FFmpeg.
