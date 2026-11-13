@@ -11,6 +11,7 @@ const worker = workerModule.default;
 const expectedItems = [
   {
     profile_id: "tiktok_pieknemedia",
+    theme: "humor",
     topic: "Humorystyczna obserwacja dnia",
     hook: "Mała rzecz, która zawsze wygląda inaczej w poniedziałek",
     format: "short",
@@ -19,6 +20,7 @@ const expectedItems = [
   },
   {
     profile_id: "tiktok_ocenionona6",
+    theme: "education",
     topic: "Jak działa pamięć robocza",
     hook: "Dlaczego czasem gubimy wątek?",
     format: "explainer",
@@ -27,6 +29,7 @@ const expectedItems = [
   },
   {
     profile_id: "youtube_memoryagent",
+    theme: "tech",
     topic: "Najnowsza zmiana w narzędziach AI",
     hook: "Co nowego w AI?",
     format: "short",
