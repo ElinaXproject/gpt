@@ -87,7 +87,7 @@ class PublisherDispatchTests(unittest.TestCase):
         }
         result = run_dispatch(
             d1=d1, now_utc="2026-11-14T12:00:00Z",
-            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             downloader=self.artifact(manifest),
             tiktok_runner=lambda *_args: self.fail("runner must not be called")
         )
@@ -108,7 +108,7 @@ class PublisherDispatchTests(unittest.TestCase):
         called=[]
         result = run_dispatch(
             d1=d1, now_utc="2026-11-14T12:00:00Z",
-            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             downloader=self.artifact(manifest),
             tiktok_runner=lambda manifest_path, media_path: called.append((manifest_path, media_path)) or {"status":"published"}
         )
@@ -121,7 +121,7 @@ class PublisherDispatchTests(unittest.TestCase):
         d1 = FakeD1(pending=[pending])
         result = run_dispatch(
             d1=d1, now_utc="2026-11-14T12:00:00Z",
-            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             tiktok_status_checker=lambda _job, _d1: "PUBLISH_COMPLETE"
         )
         self.assertEqual(1, result["reconciled"])
@@ -132,7 +132,7 @@ class PublisherDispatchTests(unittest.TestCase):
         d1 = FakeD1(pending=[pending])
         result = run_dispatch(
             d1=d1, now_utc="2026-11-14T12:00:00Z",
-            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             tiktok_status_checker=lambda _job, _d1: "FAILED"
         )
         self.assertEqual(1, result["reconciled"])
@@ -143,7 +143,7 @@ class PublisherDispatchTests(unittest.TestCase):
         d1 = FakeD1(pending=[pending])
         result = run_dispatch(
             d1=d1, now_utc="2026-11-14T12:00:00Z",
-            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key"},
+            env={"TIKTOK_CLIENT_KEY":"key","TIKTOK_CLIENT_SECRET":"secret","AUTORED_TOKEN_ENCRYPTION_KEY":"key","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             tiktok_status_checker=lambda _job, _d1: "PROCESSING_UPLOAD"
         )
         self.assertEqual(1, result["pending"])
@@ -165,7 +165,7 @@ class PublisherDispatchTests(unittest.TestCase):
         called=[]
         result=run_dispatch(
             d1=d1, now_utc="2026-11-13T12:00:00Z",
-            env={"YOUTUBE_CLIENT_ID":"id","YOUTUBE_CLIENT_SECRET":"secret","YOUTUBE_REFRESH_TOKEN":"refresh"},
+            env={"YOUTUBE_CLIENT_ID":"id","YOUTUBE_CLIENT_SECRET":"secret","YOUTUBE_REFRESH_TOKEN":"refresh","AUTORED_ARTIFACT_AGE_IDENTITY":"AGE-SECRET-KEY-TEST"},
             downloader=self.artifact(manifest),
             youtube_runner=lambda manifest_path, media_path: called.append(media_path) or {"status":"scheduled"}
         )
