@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from publora_client import PubloraError
+from autored.d1_client import D1Error
 from publora_pipeline import process_manifest, validate_manifest
 
 
@@ -42,6 +43,19 @@ class FakeClient:
     def get_post(self, post_group_id):
         self.calls.append(("get", post_group_id))
         return {"postGroup": {"status": self.post_status}}
+
+
+
+class FakeJobStore:
+    def __init__(self, error=None):
+        self.error = error
+        self.record = None
+
+    def record_scheduled(self, **kwargs):
+        if self.error:
+            raise self.error
+        self.record = kwargs
+        return {"job_id": "job-test", "job_status": "planned"}
 
 
 class PubloraPipelineTests(unittest.TestCase):
@@ -118,6 +132,22 @@ class PubloraPipelineTests(unittest.TestCase):
         )
         settings = client.calls[2][4]
         self.assertTrue(settings["tiktok"]["aiGenerated"])
+
+
+    def test_successful_schedule_is_persisted_to_d1_job_store(self):
+        client = FakeClient()
+        job_store = FakeJobStore()
+        result = process_manifest(client, self.base, job_store)
+        self.assertEqual("job-test", result["job_record"]["job_id"])
+        self.assertEqual("content-001", job_store.record["content_id"])
+        self.assertEqual("tiktok_pieknemedia", job_store.record["profile_id"])
+        self.assertEqual("group-1", job_store.record["provider_post_group_id"])
+
+    def test_d1_persistence_failure_blocks_success_result(self):
+        client = FakeClient()
+        job_store = FakeJobStore(error=D1Error("network_outcome_unknown"))
+        with self.assertRaisesRegex(PubloraError, "d1_job_record_failed"):
+            process_manifest(client, self.base, job_store)
 
     def test_unknown_schedule_outcome_is_reconciled_by_reading_post(self):
         client = FakeClient(schedule_error=PubloraError("network_outcome_unknown"), post_status="scheduled")
