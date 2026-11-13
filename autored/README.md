@@ -10,9 +10,12 @@ This package currently implements:
 - deterministic publication idempotency keys;
 - guarded publication-job state transitions;
 - monthly quota reservation;
-- conservative retry classification.
+- conservative retry classification;
+- fresh-source requirements for research profiles (72-hour window, independent domains and explicit fact-check reference);
+- structured fact-check reports with direct evidence mapping, source allowlists and deterministic report hashes;
+- a compliance-gated Publora pipeline for exact profile matching, draft creation, media upload and scheduled delivery.
 
-It deliberately does **not** publish, call platform APIs, generate AI media, or store credentials. Those are separate adapters and services that must pass their own contract and end-to-end tests before production use.
+It deliberately does **not** autonomously decide whether a factual claim is true. The fact-check report validator verifies evidence structure, freshness, allowlisted domains and explicit reviewer decisions; semantic correctness still requires a competent review step. The Publora client is tested against mocks but requires a secret API key and live account preflight before any real post can be scheduled. Credentials are never stored in this repository.
 
 ## Run tests
 
