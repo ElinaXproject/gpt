@@ -10,7 +10,7 @@
 | 2 | Repozytorium, CI, Cloudflare Worker, D1 i AI binding | testowalny backend bazowy | CI green, Worker upload, bindings, D1 schema | VERIFIED — bez testu HTTP health |
 | 3 | Kalendarz redakcyjny i osobne strategie profili | pomysły dla 3 kont | Cron, deduplikacja i rozdzielenie profili | PARTIAL — Cron skonfigurowany; pierwszy przebieg oczekuje |
 | 4 | Generator tekstu + research + fact-check | kompletne metadane | JSON, źródła i walidacja | PARTIAL — test JSON modelu; pełny batch i research niezaliczone |
-| 5 | Generator mediów + FFmpeg + walidacja plików | poprawne pliki końcowe | FFprobe, hash, decode test | NOT RUN |
+| 5 | Generator mediów + FFmpeg + walidacja plików | poprawne pliki końcowe | FFprobe, hash, decode test | PARTIAL — Piper/FFmpeg smoke test PASS; nowe tła weryfikowane |
 | 6 | Warstwa limitów, kolejka, idempotencja | bezpieczne zadania publikacyjne | timeout, retry, quota tests | PARTIAL — idempotencja w core i schedulerze; brak trwałej kolejki produkcyjnej |
 | 7 | Adapter TikTok @pieknemedia | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — brak adaptera i poświadczeń |
 | 8 | Adapter TikTok @ocenionona6 | testowany adapter | autoryzacja, upload test, odczyt statusu | BLOCKED — brak adaptera i poświadczeń |
